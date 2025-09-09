@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}전파 동향조사 브리핑 - {{ video.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Back Button -->
+    <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white px-6 py-3 rounded-full transition-all hover:-translate-x-1 mb-8">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        목록으로 돌아가기
+    </a>
+
+    <!-- Video Container -->
+    <div class="video-container">
+        <!-- Video Header -->
+        <div class="video-header">
+            <div class="character-avatar">
+                <span class="text-5xl">🦙</span>
+            </div>
+            <h1 class="text-3xl font-bold mb-3">{{ video.title }}</h1>
+            <div class="flex justify-center gap-6 text-lg opacity-90">
+                <span>📅 {{ video.date }}</span>
+                <span>⏱️ {{ video.duration }}</span>
+            </div>
+        </div>
+
+        <!-- Video Player -->
+        <div class="video-player">
+            <div class="video-placeholder">
+                <button class="play-button" onclick="playVideo()">
+                    <svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M6 4l10 6-10 6V4z"/>
+                    </svg>
+                </button>
+                <p class="text-xl">클릭하여 브리핑 시작</p>
+            </div>
+            <video id="videoElement" class="hidden w-full h-full" controls>
+                <!-- 실제 비디오 소스는 여기에 추가 -->
+            </video>
+        </div>
+
+        <!-- Video Controls -->
+        <div class="video-controls">
+            <button class="control-btn" onclick="togglePlayPause()">
+                <span id="playPauseIcon">▶️</span>
+            </button>
+            <div class="progress-bar" onclick="seekVideo(event)">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <span class="time-display" id="timeDisplay">00:00 / {{ video.duration }}</span>
+            <button class="control-btn" onclick="toggleMute()">
+                <span id="muteIcon">🔊</span>
+            </button>
+            <button class="control-btn" onclick="toggleFullscreen()">
+                <span>⛶</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Content Sections -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <!-- Chapters -->
+        <div class="content-section">
+            <h3 class="text-2xl font-semibold mb-6 flex items-center gap-3">
+                <span>📚</span> 챕터
+            </h3>
+            <ul class="space-y-3">
+                {% for chapter in video.chapters %}
+                <li class="chapter-item" onclick="seekToTime('{{ chapter.time }}')">
+                    <span class="text-primary font-medium">{{ chapter.time }}</span>
+                    <span class="text-white">{{ chapter.title }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Resources -->
+        <div class="content-section">
+            <h3 class="text-2xl font-semibold mb-6 flex items-center gap-3">
+                <span>📁</span> 관련 자료
+            </h3>
+            <ul class="space-y-3">
+                {% for resource in video.resources %}
+                <li class="resource-item">
+                    <span class="resource-icon">
+                        {% if resource.type == 'pdf' %}📄
+                        {% elif resource.type == 'doc' %}📝
+                        {% elif resource.type == 'ppt' %}📊
+                        {% else %}📎{% endif %}
+                    </span>
+                    <span class="text-white">{{ resource.title }}</span>
+                    <button class="download-btn">다운로드</button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Quiz Section -->
+    <div class="content-section mt-8">
+        <h3 class="text-2xl font-semibold mb-6 flex items-center gap-3">
+            <span>🎯</span> 학습 확인 퀴즈
+        </h3>
+        <div class="bg-gradient-to-r from-primary/20 to-secondary/20 p-6 rounded-xl border border-white/10">
+            <p class="text-white mb-4">이 브리핑의 핵심 내용을 이해하셨나요?</p>
+            <button class="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-accent transition-all">
+                퀴즈 시작하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .video-container {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+
+    .video-header {
+        background: linear-gradient(135deg, rgb(198, 120, 221), rgb(86, 182, 194));
+        padding: 40px;
+        text-align: center;
+        color: white;
+    }
+
+    .character-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+
+    .video-player {
+        width: 100%;
+        height: 450px;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .video-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .play-button {
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.9);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgb(198, 120, 221);
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .play-button:hover {
+        transform: scale(1.1);
+        background: white;
+    }
+
+    .video-controls {
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .progress-bar {
+        flex: 1;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, rgb(198, 120, 221), rgb(86, 182, 194));
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    .control-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        color: white;
+    }
+
+    .control-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .time-display {
+        color: white;
+        min-width: 120px;
+        text-align: center;
+    }
+
+    .content-section {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 30px;
+        backdrop-filter: blur(10px);
+    }
+
+    .content-section h3 {
+        color: white;
+    }
+
+    .chapter-item {
+        display: flex;
+        gap: 20px;
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .chapter-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateX(5px);
+    }
+
+    .resource-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .resource-icon {
+        font-size: 1.5rem;
+    }
+
+    .download-btn {
+        margin-left: auto;
+        background: rgba(152, 195, 121, 0.2);
+        color: rgb(152, 195, 121);
+        border: 1px solid rgba(152, 195, 121, 0.3);
+        padding: 6px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .download-btn:hover {
+        background: rgba(152, 195, 121, 0.3);
+    }
+</style>
+
+<script>
+    let isPlaying = false;
+    let videoElement = null;
+
+    function playVideo() {
+        const placeholder = document.querySelector('.video-placeholder');
+        videoElement = document.getElementById('videoElement');
+        
+        // Hide placeholder and show video
+        placeholder.style.display = 'none';
+        videoElement.classList.remove('hidden');
+        
+        // Start playing (실제 구현시 비디오 소스 설정)
+        // videoElement.src = '/static/videos/sample.mp4';
+        // videoElement.play();
+        
+        isPlaying = true;
+        updatePlayPauseIcon();
+    }
+
+    function togglePlayPause() {
+        if (!videoElement) return;
+        
+        if (isPlaying) {
+            videoElement.pause();
+        } else {
+            videoElement.play();
+        }
+        isPlaying = !isPlaying;
+        updatePlayPauseIcon();
+    }
+
+    function updatePlayPauseIcon() {
+        document.getElementById('playPauseIcon').textContent = isPlaying ? '⏸️' : '▶️';
+    }
+
+    function seekVideo(event) {
+        if (!videoElement) return;
+        
+        const progressBar = event.currentTarget;
+        const clickX = event.offsetX;
+        const width = progressBar.offsetWidth;
+        const percentage = clickX / width;
+        
+        videoElement.currentTime = videoElement.duration * percentage;
+        updateProgress();
+    }
+
+    function seekToTime(timeString) {
+        if (!videoElement) {
+            playVideo();
+        }
+        
+        // Convert time string to seconds
+        const [minutes, seconds] = timeString.split(':').map(Number);
+        const totalSeconds = minutes * 60 + seconds;
+        
+        if (videoElement) {
+            videoElement.currentTime = totalSeconds;
+        }
+    }
+
+    function updateProgress() {
+        if (!videoElement) return;
+        
+        const percentage = (videoElement.currentTime / videoElement.duration) * 100;
+        document.getElementById('progressFill').style.width = percentage + '%';
+        
+        const currentTime = formatTime(videoElement.currentTime);
+        const duration = formatTime(videoElement.duration);
+        document.getElementById('timeDisplay').textContent = `${currentTime} / ${duration}`;
+    }
+
+    function formatTime(seconds) {
+        if (isNaN(seconds)) return '00:00';
+        
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function toggleMute() {
+        if (!videoElement) return;
+        
+        videoElement.muted = !videoElement.muted;
+        document.getElementById('muteIcon').textContent = videoElement.muted ? '🔇' : '🔊';
+    }
+
+    function toggleFullscreen() {
+        if (!videoElement) return;
+        
+        if (videoElement.requestFullscreen) {
+            videoElement.requestFullscreen();
+        }
+    }
+
+    // Update progress bar while video is playing
+    if (videoElement) {
+        videoElement.addEventListener('timeupdate', updateProgress);
+    }
+</script>
+{% endblock %}
