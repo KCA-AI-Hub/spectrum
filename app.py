@@ -1,9 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import os
 from datetime import datetime
+from firecrawl import FirecrawlApp
+import requests
+from urllib.parse import quote
+import time
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# Firecrawl API 설정 (실제 사용시 환경변수로 설정)
+FIRECRAWL_API_KEY = os.environ.get('FIRECRAWL_API_KEY', 'fc-demo-key')
+firecrawl = FirecrawlApp(api_key=FIRECRAWL_API_KEY)
 
 # 기본 라우트
 @app.route('/')
@@ -144,6 +152,150 @@ def get_progress():
     }
     
     return jsonify({'success': True, 'data': progress})
+
+# 관리자 대시보드
+@app.route('/admin')
+def admin_dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # 실제 구현시 관리자 권한 체크
+    # if session.get('role') != 'admin':
+    #     return redirect(url_for('dashboard'))
+    
+    return render_template('admin_dashboard.html')
+
+# 크롤링 API 엔드포인트
+@app.route('/api/crawl', methods=['POST'])
+def crawl_naver_news():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '로그인이 필요합니다.'}), 401
+    
+    try:
+        data = request.json
+        keyword = data.get('keyword', 'ai')
+        
+        # 네이버 뉴스 검색 URL 생성
+        encoded_keyword = quote(keyword)
+        naver_search_url = f"https://search.naver.com/search.naver?where=news&query={encoded_keyword}"
+        
+        # Firecrawl을 사용해 네이버 뉴스 검색 페이지 크롤링
+        crawl_result = firecrawl.scrape_url(
+            url=naver_search_url,
+            params={
+                'formats': ['markdown', 'extract'],
+                'extract': {
+                    'schema': {
+                        'type': 'object',
+                        'properties': {
+                            'articles': {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'title': {'type': 'string'},
+                                        'summary': {'type': 'string'},
+                                        'url': {'type': 'string'},
+                                        'source': {'type': 'string'},
+                                        'date': {'type': 'string'}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        )
+        
+        # 크롤링 결과 처리
+        articles = []
+        if crawl_result and 'extract' in crawl_result:
+            extracted_data = crawl_result['extract']
+            if 'articles' in extracted_data:
+                articles = extracted_data['articles'][:10]  # 최대 10개만
+        
+        # 샘플 데이터로 보완 (실제 구현시 제거)
+        if not articles:
+            articles = [
+                {
+                    'title': f'{keyword} 관련 뉴스 1: 인공지능 기술 발전 동향',
+                    'summary': f'{keyword}과 관련된 최신 기술 동향을 분석한 기사입니다.',
+                    'url': 'https://news.naver.com/sample1',
+                    'source': '네이버뉴스',
+                    'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                    'category': 'technology'
+                },
+                {
+                    'title': f'{keyword} 관련 뉴스 2: 산업 적용 사례',
+                    'summary': f'{keyword} 기술의 실제 산업 적용 사례를 소개합니다.',
+                    'url': 'https://news.naver.com/sample2', 
+                    'source': '연합뉴스',
+                    'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                    'category': 'industry'
+                },
+                {
+                    'title': f'{keyword} 관련 뉴스 3: 정책 방향',
+                    'summary': f'{keyword} 관련 정부 정책 방향과 규제 현황을 다룹니다.',
+                    'url': 'https://news.naver.com/sample3',
+                    'source': 'KCA뉴스',
+                    'date': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                    'category': 'policy'
+                }
+            ]
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'keyword': keyword,
+                'articles': articles,
+                'total_count': len(articles),
+                'crawl_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'크롤링 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
+# 크롤링 작업 상태 조회 API
+@app.route('/api/crawl-status', methods=['GET'])
+def get_crawl_status():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': '로그인이 필요합니다.'}), 401
+    
+    # 샘플 크롤링 작업 상태 데이터
+    crawl_jobs = [
+        {
+            'id': 1,
+            'keyword': 'ai',
+            'status': 'running',
+            'progress': 75,
+            'articles_count': 23,
+            'start_time': '2024-01-15 14:30:00',
+            'estimated_completion': '2024-01-15 14:35:00'
+        },
+        {
+            'id': 2,
+            'keyword': '6G',
+            'status': 'completed',
+            'progress': 100,
+            'articles_count': 18,
+            'start_time': '2024-01-15 14:00:00',
+            'completion_time': '2024-01-15 14:05:00'
+        }
+    ]
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'jobs': crawl_jobs,
+            'total_jobs': len(crawl_jobs),
+            'running_jobs': len([j for j in crawl_jobs if j['status'] == 'running']),
+            'completed_jobs': len([j for j in crawl_jobs if j['status'] == 'completed'])
+        }
+    })
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

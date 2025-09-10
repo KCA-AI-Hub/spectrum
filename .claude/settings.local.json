@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(test -f app.py)"
+      "Bash(test -f app.py)",
+      "WebFetch(domain:docs.firecrawl.dev)",
+      "Bash(python:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
