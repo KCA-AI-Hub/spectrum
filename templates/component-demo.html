@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1 관리자 컴포넌트 데모 - Spectrum</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 기본 다크 테마 스타일 */
+        body {
+            background: linear-gradient(135deg, rgb(15, 23, 42) 0%, rgb(30, 41, 59) 100%);
+            min-height: 100vh;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* 스크롤바 스타일 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 컴포넌트 섹션 스타일 */
+        .demo-section {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            margin-bottom: 32px;
+            overflow: hidden;
+        }
+
+        .demo-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .demo-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .demo-description {
+            color: rgb(171, 178, 191);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .demo-content {
+            padding: 24px;
+        }
+
+        /* 네비게이션 */
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 32px;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: rgb(171, 178, 191);
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+
+        .nav-tab.active {
+            background: rgb(198, 120, 221);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 헤더 */
+        .page-header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding: 40px 20px;
+        }
+
+        .page-title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, rgb(198, 120, 221), rgb(86, 182, 194));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            font-size: 1.2rem;
+            color: rgb(171, 178, 191);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* 코드 블록 */
+        .code-block {
+            background: rgb(17, 24, 39);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            color: rgb(229, 231, 235);
+            overflow-x: auto;
+        }
+
+        /* 사용법 가이드 */
+        .usage-guide {
+            background: rgba(86, 182, 194, 0.1);
+            border: 1px solid rgba(86, 182, 194, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .usage-title {
+            color: rgb(86, 182, 194);
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+
+        .usage-content {
+            color: rgb(171, 178, 191);
+            line-height: 1.6;
+        }
+
+        .usage-content ul {
+            margin: 12px 0;
+            padding-left: 20px;
+        }
+
+        .usage-content li {
+            margin: 8px 0;
+        }
+
+        /* 특징 리스트 */
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .feature-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 3px solid rgb(198, 120, 221);
+        }
+
+        .feature-title {
+            color: white;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .feature-description {
+            color: rgb(171, 178, 191);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .nav-tabs {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .feature-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- 페이지 헤더 -->
+        <div class="page-header">
+            <h1 class="page-title">Phase 1 관리자 컴포넌트</h1>
+            <p class="page-subtitle">
+                Firecrawl API 기반 정책동향 분석 시스템의 핵심 관리자 UI 컴포넌트들을 
+                실제 동작과 함께 확인해보세요.
+            </p>
+        </div>
+
+        <!-- 네비게이션 탭 -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('stats')">
+                📊 통계 카드
+            </button>
+            <button class="nav-tab" onclick="switchTab('keywords')">
+                🏷️ 키워드 관리
+            </button>
+            <button class="nav-tab" onclick="switchTab('sites')">
+                🌐 사이트 관리
+            </button>
+            <button class="nav-tab" onclick="switchTab('crawling')">
+                🚀 크롤링 컨트롤
+            </button>
+            <button class="nav-tab" onclick="switchTab('overview')">
+                📋 전체 개요
+            </button>
+        </div>
+
+        <!-- 통계 카드 탭 -->
+        <div id="stats-tab" class="tab-content active">
+            <div class="demo-section">
+                <div class="demo-header">
+                    <h2 class="demo-title">통계 카드 컴포넌트</h2>
+                    <p class="demo-description">
+                        크롤링 활동의 주요 지표를 실시간으로 모니터링할 수 있는 대시보드 카드들입니다. 
+                        각 카드는 애니메이션과 미니 차트를 포함하여 직관적인 데이터 시각화를 제공합니다.
+                    </p>
+                </div>
+                <div class="demo-content">
+                    <!-- 통계 카드 컴포넌트 로드 -->
+                    <div id="stats-component-container"></div>
+                    
+                    <div class="usage-guide">
+                        <h3 class="usage-title">주요 기능</h3>
+                        <div class="usage-content">
+                            <ul>
+                                <li><strong>실시간 데이터 업데이트:</strong> 5분마다 자동으로 최신 통계 반영</li>
+                                <li><strong>숫자 애니메이션:</strong> 카운트업 효과로 시각적 임팩트 제공</li>
+                                <li><strong>미니 차트:</strong> 각 카드에 트렌드를 보여주는 간단한 차트</li>
+                                <li><strong>변화율 표시:</strong> 전일/전주 대비 증감률을 색상으로 구분</li>
+                                <li><strong>로딩 상태:</strong> 데이터 로드 중 스켈레톤 UI 표시</li>
+                                <li><strong>오류 처리:</strong> 네트워크 오류 시 재시도 옵션 제공</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 키워드 관리 탭 -->
+        <div id="keywords-tab" class="tab-content">
+            <div class="demo-section">
+                <div class="demo-header">
+                    <h2 class="demo-title">키워드 관리 컴포넌트</h2>
+                    <p class="demo-description">
+                        크롤링에 사용할 키워드를 등록, 관리할 수 있는 컴포넌트입니다. 
+                        카테고리별 분류와 태그 형태의 직관적인 UI를 제공합니다.
+                    </p>
+                </div>
+                <div class="demo-content">
+                    <!-- 키워드 관리 컴포넌트 로드 -->
+                    <div id="keywords-component-container"></div>
+                    
+                    <div class="usage-guide">
+                        <h3 class="usage-title">사용법</h3>
+                        <div class="usage-content">
+                            <ul>
+                                <li><strong>키워드 추가:</strong> 입력 필드에 키워드 입력 후 Enter 또는 추가 버튼 클릭</li>
+                                <li><strong>카테고리 선택:</strong> 기술, 정책, 산업, 연구 중 적절한 카테고리 선택</li>
+                                <li><strong>키워드 삭제:</strong> 태그의 X 버튼을 클릭하여 개별 삭제</li>
+                                <li><strong>필터링:</strong> 카테고리별 필터 버튼으로 키워드 분류 확인</li>
+                                <li><strong>중복 체크:</strong> 이미 등록된 키워드는 자동으로 중복 방지</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <div class="feature-title">태그 기반 UI</div>
+                            <div class="feature-description">등록된 키워드를 시각적으로 구분하기 쉬운 태그 형태로 표시</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">카테고리 분류</div>
+                            <div class="feature-description">키워드를 용도별로 분류하여 체계적 관리</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">실시간 검증</div>
+                            <div class="feature-description">중복 키워드 및 유효성 검사를 즉시 수행</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">빠른 입력</div>
+                            <div class="feature-description">Enter 키 지원으로 연속적인 키워드 입력 가능</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 사이트 관리 탭 -->
+        <div id="sites-tab" class="tab-content">
+            <div class="demo-section">
+                <div class="demo-header">
+                    <h2 class="demo-title">사이트 관리 컴포넌트</h2>
+                    <p class="demo-description">
+                        크롤링 대상 사이트를 Excel 파일로 일괄 등록하거나 개별 추가할 수 있는 관리 시스템입니다. 
+                        드래그 앤 드롭 업로드와 사이트 유효성 검증 기능을 포함합니다.
+                    </p>
+                </div>
+                <div class="demo-content">
+                    <!-- 사이트 관리 컴포넌트 로드 -->
+                    <div id="sites-component-container"></div>
+                    
+                    <div class="usage-guide">
+                        <h3 class="usage-title">Excel 파일 업로드 방법</h3>
+                        <div class="usage-content">
+                            <ol>
+                                <li><strong>템플릿 다운로드:</strong> 제공된 Excel 템플릿을 다운로드하여 양식 확인</li>
+                                <li><strong>사이트 정보 입력:</strong> 사이트명, URL, 타입, 설명을 템플릿에 맞게 작성</li>
+                                <li><strong>파일 업로드:</strong> 드래그 앤 드롭 또는 클릭하여 Excel 파일 업로드</li>
+                                <li><strong>자동 검증:</strong> 업로드된 URL의 유효성을 자동으로 검사</li>
+                                <li><strong>결과 확인:</strong> 등록된 사이트 목록에서 업로드 결과 확인</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <div class="feature-title">드래그 앤 드롭</div>
+                            <div class="feature-description">직관적인 파일 업로드 인터페이스</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">Excel 템플릿</div>
+                            <div class="feature-description">표준화된 사이트 정보 입력 양식</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">사이트 검증</div>
+                            <div class="feature-description">URL 유효성 및 접근성 자동 검사</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">카테고리 관리</div>
+                            <div class="feature-description">정부기관, 언론사, 기술블로그 등 타입별 분류</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">수동 추가</div>
+                            <div class="feature-description">개별 사이트를 직접 등록할 수 있는 모달 폼</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">필터링 & 검색</div>
+                            <div class="feature-description">타입별 필터링 및 사이트명/URL 검색</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 크롤링 컨트롤 탭 -->
+        <div id="crawling-tab" class="tab-content">
+            <div class="demo-section">
+                <div class="demo-header">
+                    <h2 class="demo-title">크롤링 실행 및 모니터링 컴포넌트</h2>
+                    <p class="demo-description">
+                        등록된 키워드와 사이트를 기반으로 주간 크롤링을 실행하고 실시간으로 진행 상황을 모니터링할 수 있는 
+                        통합 제어 시스템입니다. 진행률, 수집 현황, 오류 처리를 한눈에 확인할 수 있습니다.
+                    </p>
+                </div>
+                <div class="demo-content">
+                    <!-- 크롤링 컨트롤 컴포넌트 로드 -->
+                    <div id="crawling-component-container"></div>
+                    
+                    <div class="usage-guide">
+                        <h3 class="usage-title">크롤링 실행 과정</h3>
+                        <div class="usage-content">
+                            <ol>
+                                <li><strong>사전 확인:</strong> 등록된 키워드와 사이트 수, 예상 소요시간 확인</li>
+                                <li><strong>크롤링 시작:</strong> "크롤링 시작" 버튼 클릭으로 주간 크롤링 실행</li>
+                                <li><strong>실시간 모니터링:</strong> 진행률, 현재 작업, 수집 현황을 실시간 확인</li>
+                                <li><strong>제어 옵션:</strong> 필요 시 일시정지 또는 중지 가능</li>
+                                <li><strong>결과 확인:</strong> 완료 후 수집된 기사 수, 성공률 등 결과 통계 확인</li>
+                                <li><strong>후속 작업:</strong> 결과 내보내기, 새 크롤링 시작 등 추가 작업 수행</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <div class="feature-title">원클릭 실행</div>
+                            <div class="feature-description">모든 키워드와 사이트를 대상으로 한 번에 크롤링 시작</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">실시간 진행률</div>
+                            <div class="feature-description">전체 진행률과 현재 처리 중인 작업을 실시간 표시</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">세부 통계</div>
+                            <div class="feature-description">사이트별, 키워드별 처리 현황과 수집된 기사 수 표시</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">작업 제어</div>
+                            <div class="feature-description">실행 중 일시정지, 재시작, 중지 기능 제공</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">결과 미리보기</div>
+                            <div class="feature-description">수집된 기사들의 제목과 출처를 즉시 확인</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">히스토리 관리</div>
+                            <div class="feature-description">최근 크롤링 기록과 성과를 추적 관리</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 전체 개요 탭 -->
+        <div id="overview-tab" class="tab-content">
+            <div class="demo-section">
+                <div class="demo-header">
+                    <h2 class="demo-title">Phase 1 컴포넌트 전체 개요</h2>
+                    <p class="demo-description">
+                        Firecrawl API 기반 정책동향 분석 시스템의 Phase 1에서 구현된 
+                        4개 핵심 관리자 컴포넌트의 전체적인 구조와 연동 관계를 설명합니다.
+                    </p>
+                </div>
+                <div class="demo-content">
+                    <div class="usage-guide">
+                        <h3 class="usage-title">컴포넌트 아키텍처</h3>
+                        <div class="usage-content">
+                            <p>각 컴포넌트는 독립적으로 작동하면서도 서로 연동하여 완전한 크롤링 관리 시스템을 구성합니다:</p>
+                            <ul>
+                                <li><strong>통계 카드:</strong> 전체 시스템의 현황을 한눈에 파악</li>
+                                <li><strong>키워드 관리:</strong> 크롤링 대상 키워드 설정 및 관리</li>
+                                <li><strong>사이트 관리:</strong> 크롤링 대상 사이트 등록 및 관리</li>
+                                <li><strong>크롤링 컨트롤:</strong> 실제 크롤링 실행 및 모니터링</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="code-block">
+<!-- 컴포넌트 사용 예시 -->
+&lt;!-- 관리자 대시보드 페이지 --&gt;
+&lt;div class="admin-dashboard"&gt;
+    &lt;!-- 통계 개요 --&gt;
+    &lt;div id="stats-section"&gt;
+        &lt;!-- stats-cards.html 컴포넌트 포함 --&gt;
+    &lt;/div&gt;
+    
+    &lt;!-- 크롤링 관리 --&gt;
+    &lt;div id="crawling-management"&gt;
+        &lt;!-- keyword-management.html 컴포넌트 포함 --&gt;
+        &lt;!-- site-management.html 컴포넌트 포함 --&gt;
+        &lt;!-- crawling-control.html 컴포넌트 포함 --&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+                    </div>
+
+                    <div class="feature-list">
+                        <div class="feature-item">
+                            <div class="feature-title">모듈화 설계</div>
+                            <div class="feature-description">각 컴포넌트는 독립적인 HTML, CSS, JavaScript로 구성되어 재사용 가능</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">반응형 디자인</div>
+                            <div class="feature-description">데스크톱, 태블릿, 모바일에서 최적화된 사용자 경험 제공</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">다크 테마</div>
+                            <div class="feature-description">관리자 작업에 최적화된 어두운 테마와 시각적 계층 구조</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">실시간 상호작용</div>
+                            <div class="feature-description">컴포넌트 간 데이터 연동과 실시간 상태 업데이트</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">확장성 고려</div>
+                            <div class="feature-description">Phase 2, 3 기능 추가 시 기존 컴포넌트와 자연스럽게 통합</div>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-title">사용자 중심 UX</div>
+                            <div class="feature-description">직관적인 인터페이스와 명확한 피드백으로 사용 편의성 극대화</div>
+                        </div>
+                    </div>
+
+                    <div class="usage-guide">
+                        <h3 class="usage-title">다음 단계 (Phase 2)</h3>
+                        <div class="usage-content">
+                            <p>현재 Phase 1 컴포넌트를 기반으로 다음 기능들이 확장될 예정입니다:</p>
+                            <ul>
+                                <li><strong>문서 요약 관리:</strong> AI 기반 기사 요약 및 품질 관리</li>
+                                <li><strong>동영상 생성 관리:</strong> fal.ai 연동 동영상 제작 워크플로우</li>
+                                <li><strong>퀴즈 생성 관리:</strong> 동영상 기반 학습 퀴즈 생성 시스템</li>
+                                <li><strong>사용자 관리:</strong> 플랫폼 사용자 및 권한 관리</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 탭 전환 기능
+        function switchTab(tabName) {
+            // 모든 탭 콘텐츠 숨기기
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 모든 탭 버튼 비활성화
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 선택된 탭 표시
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            // 선택된 탭에 따라 컴포넌트 로드
+            loadComponentForTab(tabName);
+        }
+
+        // 컴포넌트 로드 함수
+        async function loadComponentForTab(tabName) {
+            const containers = {
+                'stats': 'stats-component-container',
+                'keywords': 'keywords-component-container', 
+                'sites': 'sites-component-container',
+                'crawling': 'crawling-component-container'
+            };
+            
+            const files = {
+                'stats': '../components/stats-cards.html',
+                'keywords': '../components/keyword-management.html',
+                'sites': '../components/site-management.html', 
+                'crawling': '../components/crawling-control.html'
+            };
+            
+            const containerId = containers[tabName];
+            const file = files[tabName];
+            
+            if (containerId && file) {
+                const container = document.getElementById(containerId);
+                if (container && !container.hasChildNodes()) {
+                    try {
+                        const response = await fetch(file);
+                        const html = await response.text();
+                        container.innerHTML = html;
+                        
+                        // 컴포넌트별 초기화 함수 호출
+                        setTimeout(() => {
+                            initializeComponent(tabName);
+                        }, 100);
+                        
+                    } catch (error) {
+                        console.error(`컴포넌트 로드 실패 (${tabName}):`, error);
+                        container.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: rgb(224, 108, 117);">
+                                <div style="font-size: 2rem; margin-bottom: 16px;">⚠️</div>
+                                <div>컴포넌트를 로드할 수 없습니다.</div>
+                                <div style="font-size: 0.9rem; margin-top: 8px; opacity: 0.8;">
+                                    ${file} 파일을 확인해주세요.
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+
+        // 컴포넌트별 초기화
+        function initializeComponent(tabName) {
+            try {
+                switch(tabName) {
+                    case 'stats':
+                        if (typeof initStatsCards === 'function') {
+                            initStatsCards();
+                        }
+                        break;
+                    case 'keywords':
+                        if (typeof initKeywordManagement === 'function') {
+                            initKeywordManagement();
+                        }
+                        break;
+                    case 'sites':
+                        if (typeof initSiteManagement === 'function') {
+                            initSiteManagement();
+                        }
+                        break;
+                    case 'crawling':
+                        if (typeof initCrawlingControl === 'function') {
+                            initCrawlingControl();
+                        }
+                        break;
+                }
+            } catch (error) {
+                console.error(`컴포넌트 초기화 실패 (${tabName}):`, error);
+            }
+        }
+
+        // 페이지 로드 시 첫 번째 탭 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadComponentForTab('stats');
+        });
+
+        // 메시지 표시 함수 (컴포넌트들이 사용)
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `demo-message message-${type}`;
+            messageDiv.textContent = message;
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? 'rgb(152, 195, 121)' : 
+                            type === 'error' ? 'rgb(224, 108, 117)' : 
+                            type === 'warning' ? 'rgb(229, 192, 123)' : 'rgb(86, 182, 194)'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                animation: slideInRight 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            `;
+            
+            // 슬라이드 인 애니메이션 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideInRight {
+                    from {
+                        opacity: 0;
+                        transform: translateX(100px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(0);
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // 슬라이드 아웃 애니메이션
+        const slideOutStyle = document.createElement('style');
+        slideOutStyle.textContent = `
+            @keyframes slideOutRight {
+                from {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+                to {
+                    opacity: 0;
+                    transform: translateX(100px);
+                }
+            }
+        `;
+        document.head.appendChild(slideOutStyle);
+    </script>
+</body>
+</html>

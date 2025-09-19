@@ -1,0 +1,1105 @@
+<!-- 사이트 관리 컴포넌트 -->
+<div class="site-management-component">
+    <div class="component-header">
+        <h4 class="component-title">크롤링 대상 사이트 관리</h4>
+        <div class="component-description">
+            Excel 파일로 크롤링 대상 사이트를 일괄 등록하고 관리합니다.
+        </div>
+    </div>
+
+    <!-- Excel 파일 업로드 영역 -->
+    <div class="file-upload-section">
+        <div class="upload-area" id="upload-area">
+            <div class="upload-content">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">
+                    <div class="upload-title">Excel 파일을 드래그하여 업로드</div>
+                    <div class="upload-subtitle">또는 클릭하여 파일 선택</div>
+                </div>
+                <div class="upload-formats">
+                    지원 형식: .xlsx, .xls (최대 10MB)
+                </div>
+            </div>
+            <input type="file" id="site-file-input" accept=".xlsx,.xls" class="file-input" multiple>
+        </div>
+        
+        <!-- 업로드 진행 상황 -->
+        <div class="upload-progress hidden" id="upload-progress">
+            <div class="progress-header">
+                <span class="progress-text">파일 업로드 중...</span>
+                <span class="progress-percentage">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Excel 템플릿 다운로드 -->
+    <div class="template-section">
+        <div class="template-info">
+            <div class="template-icon">📋</div>
+            <div class="template-content">
+                <div class="template-title">Excel 템플릿 다운로드</div>
+                <div class="template-description">
+                    사이트 정보를 올바른 형식으로 작성하기 위한 템플릿입니다.
+                </div>
+            </div>
+            <button class="btn-download-template" onclick="downloadTemplate()">
+                <i class="icon">⬇️</i>
+                템플릿 다운로드
+            </button>
+        </div>
+    </div>
+
+    <!-- 등록된 사이트 목록 -->
+    <div class="sites-section">
+        <div class="section-header">
+            <div class="section-label">
+                <span class="label-text">등록된 사이트</span>
+                <span class="site-count" id="site-count">0개</span>
+            </div>
+            <div class="section-actions">
+                <button class="btn-refresh" onclick="refreshSites()" title="새로고침">
+                    🔄
+                </button>
+                <button class="btn-add-manual" onclick="openAddSiteModal()">
+                    ➕ 수동 추가
+                </button>
+            </div>
+        </div>
+
+        <!-- 사이트 필터 -->
+        <div class="site-filters">
+            <div class="filter-group">
+                <select class="filter-select" id="type-filter" onchange="filterSites()">
+                    <option value="">모든 타입</option>
+                    <option value="government">정부기관</option>
+                    <option value="news">언론사</option>
+                    <option value="tech">기술블로그</option>
+                    <option value="research">연구기관</option>
+                </select>
+                <select class="filter-select" id="status-filter" onchange="filterSites()">
+                    <option value="">모든 상태</option>
+                    <option value="active">활성</option>
+                    <option value="inactive">비활성</option>
+                    <option value="error">오류</option>
+                </select>
+                <input type="text" class="search-input" id="site-search" placeholder="사이트명 또는 URL 검색..." oninput="filterSites()">
+            </div>
+        </div>
+
+        <!-- 사이트 목록 -->
+        <div class="sites-list" id="sites-list">
+            <!-- 동적으로 생성되는 사이트 카드들 -->
+        </div>
+
+        <!-- 빈 상태 -->
+        <div class="empty-state" id="sites-empty-state">
+            <div class="empty-icon">🌐</div>
+            <div class="empty-text">등록된 사이트가 없습니다.</div>
+            <div class="empty-subtext">Excel 파일을 업로드하거나 수동으로 사이트를 추가해보세요.</div>
+        </div>
+    </div>
+</div>
+
+<!-- 수동 사이트 추가 모달 -->
+<div class="modal hidden" id="add-site-modal">
+    <div class="modal-overlay" onclick="closeAddSiteModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">사이트 수동 추가</h3>
+            <button class="modal-close" onclick="closeAddSiteModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">사이트명 *</label>
+                <input type="text" id="manual-site-name" class="form-input" placeholder="예: 한국방송통신위원회">
+            </div>
+            <div class="form-group">
+                <label class="form-label">URL *</label>
+                <input type="url" id="manual-site-url" class="form-input" placeholder="https://www.kca.go.kr">
+            </div>
+            <div class="form-group">
+                <label class="form-label">사이트 타입</label>
+                <select id="manual-site-type" class="form-select">
+                    <option value="government">정부기관</option>
+                    <option value="news">언론사</option>
+                    <option value="tech">기술블로그</option>
+                    <option value="research">연구기관</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">설명</label>
+                <textarea id="manual-site-description" class="form-textarea" placeholder="사이트에 대한 간단한 설명"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeAddSiteModal()">취소</button>
+            <button class="btn-primary" onclick="addSiteManually()">추가</button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 사이트 관리 컴포넌트 스타일 */
+.site-management-component {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.component-header {
+    margin-bottom: 32px;
+}
+
+.component-title {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.component-description {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+}
+
+/* 파일 업로드 영역 */
+.file-upload-section {
+    margin-bottom: 32px;
+}
+
+.upload-area {
+    border: 2px dashed rgba(198, 120, 221, 0.3);
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    background: rgba(198, 120, 221, 0.05);
+}
+
+.upload-area:hover {
+    border-color: rgba(198, 120, 221, 0.5);
+    background: rgba(198, 120, 221, 0.08);
+}
+
+.upload-area.dragover {
+    border-color: rgb(198, 120, 221);
+    background: rgba(198, 120, 221, 0.1);
+    transform: scale(1.02);
+}
+
+.file-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+}
+
+.upload-title {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.upload-subtitle {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.upload-formats {
+    color: rgb(156, 163, 175);
+    font-size: 0.8rem;
+}
+
+/* 업로드 진행 상황 */
+.upload-progress {
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(86, 182, 194, 0.1);
+    border-radius: 8px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.progress-text {
+    color: white;
+    font-size: 0.9rem;
+}
+
+.progress-percentage {
+    color: rgb(86, 182, 194);
+    font-weight: 500;
+}
+
+.progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, rgb(86, 182, 194), rgb(198, 120, 221));
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* 템플릿 섹션 */
+.template-section {
+    margin-bottom: 32px;
+    padding: 20px;
+    background: rgba(229, 192, 123, 0.1);
+    border: 1px solid rgba(229, 192, 123, 0.2);
+    border-radius: 12px;
+}
+
+.template-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.template-icon {
+    font-size: 2rem;
+    color: rgb(229, 192, 123);
+}
+
+.template-content {
+    flex: 1;
+}
+
+.template-title {
+    color: white;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.template-description {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+}
+
+.btn-download-template {
+    background: rgb(229, 192, 123);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-download-template:hover {
+    background: rgb(209, 172, 103);
+    transform: translateY(-1px);
+}
+
+/* 사이트 목록 섹션 */
+.sites-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 24px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.label-text {
+    color: white;
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.site-count {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+}
+
+.section-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-refresh {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgb(171, 178, 191);
+    border-radius: 6px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.btn-add-manual {
+    background: rgb(86, 182, 194);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-add-manual:hover {
+    background: rgb(66, 162, 174);
+}
+
+/* 필터 */
+.site-filters {
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-select, .search-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.filter-select {
+    min-width: 120px;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.search-input::placeholder {
+    color: rgb(171, 178, 191);
+}
+
+/* 사이트 목록 */
+.sites-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+}
+
+.site-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.2s ease;
+}
+
+.site-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.site-info {
+    flex: 1;
+}
+
+.site-name {
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+}
+
+.site-url {
+    color: rgb(86, 182, 194);
+    font-size: 0.9rem;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.site-url:hover {
+    text-decoration: underline;
+}
+
+.site-status {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.site-status.active {
+    background: rgba(152, 195, 121, 0.2);
+    color: rgb(152, 195, 121);
+}
+
+.site-status.inactive {
+    background: rgba(171, 178, 191, 0.2);
+    color: rgb(171, 178, 191);
+}
+
+.site-status.error {
+    background: rgba(224, 108, 117, 0.2);
+    color: rgb(224, 108, 117);
+}
+
+.site-meta {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+    color: rgb(171, 178, 191);
+}
+
+.site-type {
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+.site-type.government {
+    background: rgba(224, 108, 117, 0.2);
+    color: rgb(224, 108, 117);
+}
+
+.site-type.news {
+    background: rgba(86, 182, 194, 0.2);
+    color: rgb(86, 182, 194);
+}
+
+.site-type.tech {
+    background: rgba(198, 120, 221, 0.2);
+    color: rgb(198, 120, 221);
+}
+
+.site-type.research {
+    background: rgba(229, 192, 123, 0.2);
+    color: rgb(229, 192, 123);
+}
+
+.site-description {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 16px;
+}
+
+.site-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-edit, .btn-delete, .btn-test {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit {
+    background: rgba(229, 192, 123, 0.2);
+    border: 1px solid rgba(229, 192, 123, 0.3);
+    color: rgb(229, 192, 123);
+}
+
+.btn-delete {
+    background: rgba(224, 108, 117, 0.2);
+    border: 1px solid rgba(224, 108, 117, 0.3);
+    color: rgb(224, 108, 117);
+}
+
+.btn-test {
+    background: rgba(86, 182, 194, 0.2);
+    border: 1px solid rgba(86, 182, 194, 0.3);
+    color: rgb(86, 182, 194);
+}
+
+/* 빈 상태 */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgb(171, 178, 191);
+}
+
+.empty-state.hidden {
+    display: none;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.empty-subtext {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* 모달 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content {
+    background: rgb(31, 35, 40);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 1;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-title {
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: rgb(171, 178, 191);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    color: white;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: white;
+    font-size: 0.9rem;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgb(171, 178, 191);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: rgb(198, 120, 221);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* 유틸리티 */
+.hidden {
+    display: none !important;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .sites-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-group {
+        flex-direction: column;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+}
+</style>
+
+<script>
+// 사이트 관리 컴포넌트 JavaScript
+class SiteManager {
+    constructor() {
+        this.sites = [];
+        this.filteredSites = [];
+        this.init();
+    }
+
+    init() {
+        this.setupFileUpload();
+        this.updateDisplay();
+        
+        // 샘플 데이터 로드 (실제 구현에서는 API 호출)
+        this.loadSampleData();
+    }
+
+    setupFileUpload() {
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('site-file-input');
+
+        // 드래그 앤 드롭 이벤트
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            this.handleFiles(files);
+        });
+
+        // 파일 선택 이벤트
+        fileInput.addEventListener('change', (e) => {
+            this.handleFiles(e.target.files);
+        });
+    }
+
+    handleFiles(files) {
+        for (let file of files) {
+            if (this.validateFile(file)) {
+                this.uploadFile(file);
+            }
+        }
+    }
+
+    validateFile(file) {
+        const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+                           'application/vnd.ms-excel'];
+        const maxSize = 10 * 1024 * 1024; // 10MB
+
+        if (!validTypes.includes(file.type)) {
+            this.showMessage('Excel 파일만 업로드 가능합니다.', 'error');
+            return false;
+        }
+
+        if (file.size > maxSize) {
+            this.showMessage('파일 크기는 10MB 이하여야 합니다.', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    async uploadFile(file) {
+        const progressDiv = document.getElementById('upload-progress');
+        const progressFill = document.getElementById('progress-fill');
+        
+        progressDiv.classList.remove('hidden');
+
+        try {
+            // 파일 업로드 시뮬레이션
+            for (let i = 0; i <= 100; i += 10) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                progressFill.style.width = i + '%';
+                document.querySelector('.progress-percentage').textContent = i + '%';
+            }
+
+            // Excel 파일 파싱 시뮬레이션
+            const sites = await this.parseExcelFile(file);
+            this.addSites(sites);
+            
+            this.showMessage(`${sites.length}개의 사이트가 성공적으로 등록되었습니다.`, 'success');
+            
+        } catch (error) {
+            this.showMessage('파일 업로드 중 오류가 발생했습니다.', 'error');
+        } finally {
+            progressDiv.classList.add('hidden');
+        }
+    }
+
+    async parseExcelFile(file) {
+        // 실제 구현에서는 SheetJS 등을 사용하여 Excel 파싱
+        // 여기서는 샘플 데이터 반환
+        return [
+            {
+                name: '한국방송통신위원회',
+                url: 'https://www.kca.go.kr',
+                type: 'government',
+                description: '방송통신 정책 및 규제 기관',
+                status: 'active'
+            },
+            {
+                name: '전자신문',
+                url: 'https://www.etnews.com',
+                type: 'news',
+                description: 'IT 전문 뉴스 매체',
+                status: 'active'
+            }
+        ];
+    }
+
+    addSites(sites) {
+        sites.forEach(site => {
+            const newSite = {
+                id: Date.now() + Math.random(),
+                ...site,
+                createdAt: new Date(),
+                lastCrawled: null
+            };
+            this.sites.push(newSite);
+        });
+        
+        this.updateDisplay();
+    }
+
+    filterSites() {
+        const typeFilter = document.getElementById('type-filter').value;
+        const statusFilter = document.getElementById('status-filter').value;
+        const searchTerm = document.getElementById('site-search').value.toLowerCase();
+
+        this.filteredSites = this.sites.filter(site => {
+            const matchesType = !typeFilter || site.type === typeFilter;
+            const matchesStatus = !statusFilter || site.status === statusFilter;
+            const matchesSearch = !searchTerm || 
+                site.name.toLowerCase().includes(searchTerm) ||
+                site.url.toLowerCase().includes(searchTerm);
+
+            return matchesType && matchesStatus && matchesSearch;
+        });
+
+        this.updateDisplay();
+    }
+
+    updateDisplay() {
+        const container = document.getElementById('sites-list');
+        const emptyState = document.getElementById('sites-empty-state');
+        const countElement = document.getElementById('site-count');
+
+        const sitesToShow = this.filteredSites.length > 0 ? this.filteredSites : this.sites;
+        
+        countElement.textContent = `${sitesToShow.length}개`;
+
+        if (sitesToShow.length === 0) {
+            container.style.display = 'none';
+            emptyState.classList.remove('hidden');
+        } else {
+            container.style.display = 'grid';
+            emptyState.classList.add('hidden');
+            
+            container.innerHTML = sitesToShow.map(site => this.createSiteCard(site)).join('');
+        }
+    }
+
+    createSiteCard(site) {
+        const typeNames = {
+            government: '정부기관',
+            news: '언론사',
+            tech: '기술블로그',
+            research: '연구기관'
+        };
+
+        const statusNames = {
+            active: '활성',
+            inactive: '비활성',
+            error: '오류'
+        };
+
+        return `
+            <div class="site-card" data-id="${site.id}">
+                <div class="site-header">
+                    <div class="site-info">
+                        <div class="site-name">${site.name}</div>
+                        <a href="${site.url}" target="_blank" class="site-url">${site.url}</a>
+                    </div>
+                    <div class="site-status ${site.status}">${statusNames[site.status]}</div>
+                </div>
+                <div class="site-meta">
+                    <span class="site-type ${site.type}">${typeNames[site.type]}</span>
+                    <span class="site-created">등록: ${new Date(site.createdAt).toLocaleDateString()}</span>
+                    ${site.lastCrawled ? `<span class="site-crawled">최근 크롤링: ${new Date(site.lastCrawled).toLocaleDateString()}</span>` : ''}
+                </div>
+                ${site.description ? `<div class="site-description">${site.description}</div>` : ''}
+                <div class="site-actions">
+                    <button class="btn-test" onclick="testSite(${site.id})">테스트</button>
+                    <button class="btn-edit" onclick="editSite(${site.id})">수정</button>
+                    <button class="btn-delete" onclick="deleteSite(${site.id})">삭제</button>
+                </div>
+            </div>
+        `;
+    }
+
+    loadSampleData() {
+        this.sites = [
+            {
+                id: 1,
+                name: '한국방송통신위원회',
+                url: 'https://www.kca.go.kr',
+                type: 'government',
+                description: '방송통신 정책 및 규제 기관',
+                status: 'active',
+                createdAt: new Date('2024-01-10'),
+                lastCrawled: new Date('2024-01-15')
+            },
+            {
+                id: 2,
+                name: '전자신문',
+                url: 'https://www.etnews.com',
+                type: 'news',
+                description: 'IT 전문 뉴스 매체',
+                status: 'active',
+                createdAt: new Date('2024-01-12'),
+                lastCrawled: new Date('2024-01-14')
+            },
+            {
+                id: 3,
+                name: '네이버 뉴스',
+                url: 'https://news.naver.com',
+                type: 'news',
+                description: '종합 뉴스 포털',
+                status: 'inactive',
+                createdAt: new Date('2024-01-08'),
+                lastCrawled: null
+            }
+        ];
+        this.updateDisplay();
+    }
+
+    showMessage(message, type = 'info') {
+        // 메시지 표시 (키워드 관리 컴포넌트와 동일)
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${type}`;
+        messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? 'rgb(152, 195, 121)' : 
+                        type === 'error' ? 'rgb(224, 108, 117)' : 
+                        type === 'warning' ? 'rgb(229, 192, 123)' : 'rgb(86, 182, 194)'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease;
+        `;
+        
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 3000);
+    }
+}
+
+// 전역 인스턴스
+let siteManager;
+
+// 외부 함수들
+function downloadTemplate() {
+    // Excel 템플릿 다운로드 구현
+    const link = document.createElement('a');
+    link.href = '/static/templates/site-template.xlsx';
+    link.download = '사이트_등록_템플릿.xlsx';
+    link.click();
+}
+
+function refreshSites() {
+    if (siteManager) {
+        siteManager.loadSampleData();
+        siteManager.showMessage('사이트 목록이 새로고침되었습니다.', 'info');
+    }
+}
+
+function filterSites() {
+    if (siteManager) {
+        siteManager.filterSites();
+    }
+}
+
+function openAddSiteModal() {
+    document.getElementById('add-site-modal').classList.remove('hidden');
+}
+
+function closeAddSiteModal() {
+    document.getElementById('add-site-modal').classList.add('hidden');
+    // 폼 초기화
+    document.getElementById('manual-site-name').value = '';
+    document.getElementById('manual-site-url').value = '';
+    document.getElementById('manual-site-type').value = 'government';
+    document.getElementById('manual-site-description').value = '';
+}
+
+function addSiteManually() {
+    const name = document.getElementById('manual-site-name').value.trim();
+    const url = document.getElementById('manual-site-url').value.trim();
+    const type = document.getElementById('manual-site-type').value;
+    const description = document.getElementById('manual-site-description').value.trim();
+
+    if (!name || !url) {
+        siteManager.showMessage('사이트명과 URL은 필수 입력 항목입니다.', 'error');
+        return;
+    }
+
+    const newSite = {
+        name,
+        url,
+        type,
+        description,
+        status: 'active'
+    };
+
+    siteManager.addSites([newSite]);
+    closeAddSiteModal();
+    siteManager.showMessage('사이트가 성공적으로 추가되었습니다.', 'success');
+}
+
+function testSite(siteId) {
+    const site = siteManager.sites.find(s => s.id === siteId);
+    if (site) {
+        siteManager.showMessage(`${site.name} 사이트 연결을 테스트 중...`, 'info');
+        // 실제 구현에서는 사이트 연결 테스트 API 호출
+    }
+}
+
+function editSite(siteId) {
+    // 사이트 수정 모달 열기 (구현 필요)
+    console.log('Edit site:', siteId);
+}
+
+function deleteSite(siteId) {
+    if (confirm('정말로 이 사이트를 삭제하시겠습니까?')) {
+        siteManager.sites = siteManager.sites.filter(s => s.id !== siteId);
+        siteManager.updateDisplay();
+        siteManager.showMessage('사이트가 삭제되었습니다.', 'info');
+    }
+}
+
+// 초기화
+function initSiteManagement() {
+    siteManager = new SiteManager();
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof siteManager === 'undefined') {
+        initSiteManagement();
+    }
+});
+</script>

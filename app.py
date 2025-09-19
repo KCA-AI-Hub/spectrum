@@ -153,7 +153,7 @@ def get_progress():
     
     return jsonify({'success': True, 'data': progress})
 
-# 관리자 대시보드
+# 관리자 대시보드 (기존 - 탭 형태)
 @app.route('/admin')
 def admin_dashboard():
     if 'user_id' not in session:
@@ -164,6 +164,23 @@ def admin_dashboard():
     #     return redirect(url_for('dashboard'))
     
     return render_template('admin_dashboard.html')
+
+# 통합 관리자 대시보드 (새로운 - 통합 형태)
+@app.route('/admin/integrated')
+def admin_integrated_dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # 실제 구현시 관리자 권한 체크
+    # if session.get('role') != 'admin':
+    #     return redirect(url_for('dashboard'))
+    
+    return render_template('admin_integrated_dashboard.html')
+
+# 컴포넌트 데모 페이지
+@app.route('/component-demo')
+def component_demo():
+    return render_template('component-demo.html')
 
 # 크롤링 API 엔드포인트
 @app.route('/api/crawl', methods=['POST'])

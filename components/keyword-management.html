@@ -1,0 +1,595 @@
+<!-- 키워드 관리 컴포넌트 -->
+<div class="keyword-management-component">
+    <div class="component-header">
+        <h4 class="component-title">크롤링 키워드 설정</h4>
+        <div class="component-description">
+            크롤링에 사용할 키워드를 등록하고 관리합니다.
+        </div>
+    </div>
+
+    <!-- 키워드 입력 영역 -->
+    <div class="keyword-input-section">
+        <div class="keyword-input-group">
+            <div class="input-wrapper">
+                <input type="text" 
+                       id="keyword-input" 
+                       class="keyword-input" 
+                       placeholder="키워드 입력 (예: 전파, 주파수, 6G)"
+                       maxlength="50">
+                <div class="input-hint">
+                    <span class="hint-text">Enter 키로 빠른 추가</span>
+                </div>
+            </div>
+            <div class="category-wrapper">
+                <select id="keyword-category" class="category-select">
+                    <option value="technology">기술</option>
+                    <option value="policy">정책</option>
+                    <option value="industry">산업</option>
+                    <option value="research">연구</option>
+                </select>
+            </div>
+            <button type="button" class="btn-add-keyword" onclick="addKeyword()">
+                <i class="icon">➕</i>
+                <span>추가</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 등록된 키워드 태그 영역 -->
+    <div class="keyword-tags-section">
+        <div class="section-label">
+            <span class="label-text">등록된 키워드</span>
+            <span class="keyword-count" id="keyword-count">0개</span>
+        </div>
+        <div class="keyword-tags" id="keyword-tags">
+            <!-- 동적으로 생성되는 키워드 태그들 -->
+        </div>
+        <div class="empty-state" id="keywords-empty-state">
+            <div class="empty-icon">🏷️</div>
+            <div class="empty-text">등록된 키워드가 없습니다.</div>
+            <div class="empty-subtext">위에서 키워드를 추가해보세요.</div>
+        </div>
+    </div>
+
+    <!-- 키워드 카테고리별 필터 -->
+    <div class="keyword-filter-section">
+        <div class="filter-label">카테고리별 보기:</div>
+        <div class="filter-buttons">
+            <button class="filter-btn active" data-category="all" onclick="filterKeywords('all')">
+                전체
+            </button>
+            <button class="filter-btn" data-category="technology" onclick="filterKeywords('technology')">
+                기술
+            </button>
+            <button class="filter-btn" data-category="policy" onclick="filterKeywords('policy')">
+                정책
+            </button>
+            <button class="filter-btn" data-category="industry" onclick="filterKeywords('industry')">
+                산업
+            </button>
+            <button class="filter-btn" data-category="research" onclick="filterKeywords('research')">
+                연구
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 키워드 관리 컴포넌트 스타일 */
+.keyword-management-component {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.component-header {
+    margin-bottom: 24px;
+}
+
+.component-title {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.component-description {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+}
+
+/* 키워드 입력 영역 */
+.keyword-input-section {
+    margin-bottom: 32px;
+}
+
+.keyword-input-group {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.input-wrapper {
+    flex: 1;
+    min-width: 250px;
+    position: relative;
+}
+
+.keyword-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.keyword-input:focus {
+    outline: none;
+    border-color: rgb(198, 120, 221);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(198, 120, 221, 0.1);
+}
+
+.keyword-input::placeholder {
+    color: rgb(171, 178, 191);
+}
+
+.input-hint {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+}
+
+.hint-text {
+    color: rgb(156, 163, 175);
+    font-size: 0.8rem;
+}
+
+.category-wrapper {
+    min-width: 120px;
+}
+
+.category-select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.category-select:focus {
+    outline: none;
+    border-color: rgb(198, 120, 221);
+}
+
+.btn-add-keyword {
+    background: rgb(198, 120, 221);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-add-keyword:hover {
+    background: rgb(178, 100, 201);
+    transform: translateY(-1px);
+}
+
+.btn-add-keyword:active {
+    transform: translateY(0);
+}
+
+/* 키워드 태그 영역 */
+.keyword-tags-section {
+    margin-bottom: 24px;
+}
+
+.section-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.label-text {
+    color: white;
+    font-weight: 500;
+}
+
+.keyword-count {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+}
+
+.keyword-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+}
+
+.keyword-tag {
+    background: rgba(198, 120, 221, 0.2);
+    border: 1px solid rgba(198, 120, 221, 0.3);
+    color: rgb(198, 120, 221);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    animation: slideIn 0.3s ease;
+}
+
+.keyword-tag:hover {
+    background: rgba(198, 120, 221, 0.3);
+    transform: translateY(-1px);
+}
+
+.keyword-tag.technology {
+    background: rgba(198, 120, 221, 0.2);
+    border-color: rgba(198, 120, 221, 0.3);
+    color: rgb(198, 120, 221);
+}
+
+.keyword-tag.policy {
+    background: rgba(86, 182, 194, 0.2);
+    border-color: rgba(86, 182, 194, 0.3);
+    color: rgb(86, 182, 194);
+}
+
+.keyword-tag.industry {
+    background: rgba(152, 195, 121, 0.2);
+    border-color: rgba(152, 195, 121, 0.3);
+    color: rgb(152, 195, 121);
+}
+
+.keyword-tag.research {
+    background: rgba(229, 192, 123, 0.2);
+    border-color: rgba(229, 192, 123, 0.3);
+    color: rgb(229, 192, 123);
+}
+
+.keyword-text {
+    font-weight: 500;
+}
+
+.remove-keyword {
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.remove-keyword:hover {
+    opacity: 1;
+}
+
+/* 빈 상태 */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgb(171, 178, 191);
+}
+
+.empty-state.hidden {
+    display: none;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.empty-subtext {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* 필터 영역 */
+.keyword-filter-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+}
+
+.filter-label {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgb(171, 178, 191);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.filter-btn.active {
+    background: rgb(198, 120, 221);
+    border-color: rgb(198, 120, 221);
+    color: white;
+}
+
+/* 애니메이션 */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .keyword-input-group {
+        flex-direction: column;
+    }
+    
+    .input-wrapper,
+    .category-wrapper {
+        min-width: 100%;
+    }
+    
+    .filter-buttons {
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+// 키워드 관리 컴포넌트 JavaScript
+class KeywordManager {
+    constructor() {
+        this.keywords = [];
+        this.currentFilter = 'all';
+        this.init();
+    }
+
+    init() {
+        // Enter 키 이벤트 리스너
+        const keywordInput = document.getElementById('keyword-input');
+        keywordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.addKeyword();
+            }
+        });
+
+        // 초기 상태 업데이트
+        this.updateDisplay();
+    }
+
+    addKeyword() {
+        const input = document.getElementById('keyword-input');
+        const categorySelect = document.getElementById('keyword-category');
+        
+        const keyword = input.value.trim();
+        const category = categorySelect.value;
+
+        if (!keyword) {
+            this.showMessage('키워드를 입력해주세요.', 'warning');
+            return;
+        }
+
+        if (keyword.length > 50) {
+            this.showMessage('키워드는 50자 이내로 입력해주세요.', 'error');
+            return;
+        }
+
+        // 중복 체크
+        if (this.keywords.some(k => k.text.toLowerCase() === keyword.toLowerCase())) {
+            this.showMessage('이미 등록된 키워드입니다.', 'warning');
+            return;
+        }
+
+        // 키워드 추가
+        const newKeyword = {
+            id: Date.now(),
+            text: keyword,
+            category: category,
+            createdAt: new Date()
+        };
+
+        this.keywords.push(newKeyword);
+        
+        // 입력 필드 초기화
+        input.value = '';
+        
+        // 화면 업데이트
+        this.updateDisplay();
+        
+        this.showMessage(`"${keyword}" 키워드가 추가되었습니다.`, 'success');
+    }
+
+    removeKeyword(keywordId) {
+        const keyword = this.keywords.find(k => k.id === keywordId);
+        if (keyword) {
+            this.keywords = this.keywords.filter(k => k.id !== keywordId);
+            this.updateDisplay();
+            this.showMessage(`"${keyword.text}" 키워드가 삭제되었습니다.`, 'info');
+        }
+    }
+
+    filterKeywords(category) {
+        this.currentFilter = category;
+        
+        // 필터 버튼 활성화 상태 업데이트
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-category="${category}"]`).classList.add('active');
+        
+        this.updateDisplay();
+    }
+
+    updateDisplay() {
+        const container = document.getElementById('keyword-tags');
+        const emptyState = document.getElementById('keywords-empty-state');
+        const countElement = document.getElementById('keyword-count');
+
+        // 필터링된 키워드 가져오기
+        const filteredKeywords = this.currentFilter === 'all' 
+            ? this.keywords 
+            : this.keywords.filter(k => k.category === this.currentFilter);
+
+        // 카운트 업데이트
+        countElement.textContent = `${filteredKeywords.length}개`;
+
+        if (filteredKeywords.length === 0) {
+            container.style.display = 'none';
+            emptyState.classList.remove('hidden');
+        } else {
+            container.style.display = 'flex';
+            emptyState.classList.add('hidden');
+            
+            // 키워드 태그 생성
+            container.innerHTML = filteredKeywords.map(keyword => `
+                <div class="keyword-tag ${keyword.category}" data-id="${keyword.id}">
+                    <span class="keyword-text">${keyword.text}</span>
+                    <button class="remove-keyword" onclick="keywordManager.removeKeyword(${keyword.id})" title="키워드 삭제">
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+    }
+
+    showMessage(message, type = 'info') {
+        // 간단한 메시지 표시 (실제 구현에서는 toast 라이브러리 사용 권장)
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${type}`;
+        messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? 'rgb(152, 195, 121)' : 
+                        type === 'error' ? 'rgb(224, 108, 117)' : 
+                        type === 'warning' ? 'rgb(229, 192, 123)' : 'rgb(86, 182, 194)'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease;
+        `;
+        
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 3000);
+    }
+
+    // API 연동용 메서드들 (향후 구현)
+    async loadKeywords() {
+        // 서버에서 키워드 목록 로드
+        try {
+            const response = await fetch('/api/admin/keywords');
+            const data = await response.json();
+            if (data.success) {
+                this.keywords = data.keywords;
+                this.updateDisplay();
+            }
+        } catch (error) {
+            console.error('키워드 로드 실패:', error);
+        }
+    }
+
+    async saveKeyword(keyword) {
+        // 서버에 키워드 저장
+        try {
+            const response = await fetch('/api/admin/keywords', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(keyword)
+            });
+            const data = await response.json();
+            return data.success;
+        } catch (error) {
+            console.error('키워드 저장 실패:', error);
+            return false;
+        }
+    }
+
+    getKeywords() {
+        return this.keywords;
+    }
+
+    getKeywordsByCategory(category) {
+        return this.keywords.filter(k => k.category === category);
+    }
+}
+
+// 전역 인스턴스 생성
+let keywordManager;
+
+// 컴포넌트 초기화 함수
+function initKeywordManagement() {
+    keywordManager = new KeywordManager();
+}
+
+// 외부에서 호출할 수 있는 함수들
+function addKeyword() {
+    keywordManager.addKeyword();
+}
+
+function filterKeywords(category) {
+    keywordManager.filterKeywords(category);
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof keywordManager === 'undefined') {
+        initKeywordManagement();
+    }
+});
+</script>

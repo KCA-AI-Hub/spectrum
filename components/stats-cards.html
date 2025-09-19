@@ -1,0 +1,697 @@
+<!-- 통계 카드 컴포넌트 -->
+<div class="stats-cards-component">
+    <div class="component-header">
+        <h4 class="component-title">크롤링 통계</h4>
+        <div class="component-description">
+            크롤링 활동 및 성과에 대한 주요 지표를 실시간으로 확인합니다.
+        </div>
+    </div>
+
+    <!-- 통계 카드 그리드 -->
+    <div class="stats-grid" id="stats-grid">
+        <!-- 동적으로 생성되는 통계 카드들 -->
+    </div>
+
+    <!-- 통계 새로고침 -->
+    <div class="stats-controls">
+        <div class="last-updated">
+            마지막 업데이트: <span id="last-updated-time">-</span>
+        </div>
+        <button class="btn-refresh-stats" onclick="refreshStats()">
+            <i class="icon">🔄</i>
+            새로고침
+        </button>
+    </div>
+</div>
+
+<style>
+/* 통계 카드 컴포넌트 스타일 */
+.stats-cards-component {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.component-header {
+    margin-bottom: 24px;
+}
+
+.component-title {
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.component-description {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+}
+
+/* 통계 그리드 */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+/* 통계 카드 */
+.stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* 카드 배경 그라데이션 */
+.stat-card.primary {
+    border-left: 4px solid rgb(198, 120, 221);
+}
+
+.stat-card.secondary {
+    border-left: 4px solid rgb(86, 182, 194);
+}
+
+.stat-card.success {
+    border-left: 4px solid rgb(152, 195, 121);
+}
+
+.stat-card.warning {
+    border-left: 4px solid rgb(229, 192, 123);
+}
+
+.stat-card.danger {
+    border-left: 4px solid rgb(224, 108, 117);
+}
+
+/* 통계 아이콘 */
+.stat-icon {
+    font-size: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.stat-card.primary .stat-icon {
+    background: rgba(198, 120, 221, 0.2);
+    color: rgb(198, 120, 221);
+}
+
+.stat-card.secondary .stat-icon {
+    background: rgba(86, 182, 194, 0.2);
+    color: rgb(86, 182, 194);
+}
+
+.stat-card.success .stat-icon {
+    background: rgba(152, 195, 121, 0.2);
+    color: rgb(152, 195, 121);
+}
+
+.stat-card.warning .stat-icon {
+    background: rgba(229, 192, 123, 0.2);
+    color: rgb(229, 192, 123);
+}
+
+.stat-card.danger .stat-icon {
+    background: rgba(224, 108, 117, 0.2);
+    color: rgb(224, 108, 117);
+}
+
+/* 통계 내용 */
+.stat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.stat-label {
+    color: rgb(171, 178, 191);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.stat-change {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.stat-change.positive {
+    color: rgb(152, 195, 121);
+}
+
+.stat-change.negative {
+    color: rgb(224, 108, 117);
+}
+
+.stat-change.neutral {
+    color: rgb(171, 178, 191);
+}
+
+.change-icon {
+    font-size: 0.8rem;
+}
+
+/* 미니 차트 */
+.stat-mini-chart {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 60px;
+    height: 30px;
+    opacity: 0.3;
+}
+
+.mini-chart-bar {
+    display: inline-block;
+    width: 3px;
+    background: currentColor;
+    margin: 0 1px;
+    border-radius: 1px;
+    animation: chartGrow 0.6s ease-out;
+}
+
+/* 로딩 상태 */
+.stat-card.loading {
+    pointer-events: none;
+}
+
+.stat-card.loading .stat-number,
+.stat-card.loading .stat-label {
+    background: linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 4px;
+    color: transparent;
+}
+
+.stat-card.loading .stat-icon {
+    opacity: 0.3;
+}
+
+/* 통계 컨트롤 */
+.stats-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.last-updated {
+    color: rgb(171, 178, 191);
+    font-size: 0.9rem;
+}
+
+.btn-refresh-stats {
+    background: rgba(86, 182, 194, 0.2);
+    border: 1px solid rgba(86, 182, 194, 0.3);
+    color: rgb(86, 182, 194);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.btn-refresh-stats:hover {
+    background: rgba(86, 182, 194, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-refresh-stats:active {
+    transform: translateY(0);
+}
+
+.btn-refresh-stats.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.btn-refresh-stats.loading .icon {
+    animation: spin 1s linear infinite;
+}
+
+/* 애니메이션 */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes chartGrow {
+    from { height: 0; }
+    to { height: var(--height); }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card {
+    animation: slideUp 0.5s ease-out;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .stat-card {
+        padding: 20px;
+        gap: 16px;
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 2.5rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .stats-controls {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 16px;
+    }
+    
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 2rem;
+    }
+    
+    .stat-number {
+        font-size: 1.8rem;
+    }
+}
+</style>
+
+<script>
+// 통계 카드 컴포넌트 JavaScript
+class StatsManager {
+    constructor() {
+        this.stats = [];
+        this.isLoading = false;
+        this.refreshInterval = null;
+        this.init();
+    }
+
+    init() {
+        this.loadStats();
+        this.startAutoRefresh();
+    }
+
+    async loadStats() {
+        this.setLoading(true);
+        
+        try {
+            // 실제 구현에서는 API 호출
+            await this.sleep(1000); // 로딩 시뮬레이션
+            
+            this.stats = await this.fetchStatsData();
+            this.renderStats();
+            this.updateLastUpdatedTime();
+            
+        } catch (error) {
+            this.handleError(error);
+        } finally {
+            this.setLoading(false);
+        }
+    }
+
+    async fetchStatsData() {
+        // 실제 구현에서는 서버 API 호출
+        // 여기서는 샘플 데이터 반환
+        return [
+            {
+                id: 'active_jobs',
+                icon: '🔍',
+                number: 24,
+                label: '활성 크롤링 작업',
+                change: { value: 5, type: 'positive', text: '전일 대비' },
+                type: 'primary',
+                miniChart: [12, 18, 15, 22, 19, 24, 20, 24]
+            },
+            {
+                id: 'collected_articles',
+                icon: '📰',
+                number: 1247,
+                label: '오늘 수집된 기사',
+                change: { value: 15, type: 'positive', text: '전일 대비' },
+                type: 'secondary',
+                miniChart: [800, 950, 1100, 1200, 1150, 1300, 1180, 1247]
+            },
+            {
+                id: 'success_rate',
+                icon: '⚡',
+                number: 98,
+                label: '수집 성공률 (%)',
+                change: { value: 2, type: 'positive', text: '전일 대비' },
+                type: 'success',
+                miniChart: [95, 96, 94, 97, 98, 96, 99, 98]
+            },
+            {
+                id: 'growth_rate',
+                icon: '📈',
+                number: 15,
+                label: '전일 대비 증가 (%)',
+                change: { value: 3, type: 'positive', text: '전주 대비' },
+                type: 'warning',
+                miniChart: [8, 12, 10, 15, 18, 14, 16, 15]
+            },
+            {
+                id: 'error_count',
+                icon: '⚠️',
+                number: 3,
+                label: '오늘 발생한 오류',
+                change: { value: 2, type: 'negative', text: '전일 대비' },
+                type: 'danger',
+                miniChart: [8, 5, 7, 4, 6, 3, 5, 3]
+            },
+            {
+                id: 'processing_time',
+                icon: '⏱️',
+                number: 12,
+                label: '평균 처리시간 (분)',
+                change: { value: 1, type: 'negative', text: '단축됨' },
+                type: 'secondary',
+                miniChart: [15, 14, 16, 13, 12, 14, 11, 12]
+            }
+        ];
+    }
+
+    renderStats() {
+        const container = document.getElementById('stats-grid');
+        
+        container.innerHTML = this.stats.map((stat, index) => `
+            <div class="stat-card ${stat.type}" style="animation-delay: ${index * 0.1}s">
+                <div class="stat-icon">
+                    ${stat.icon}
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number" data-target="${stat.number}">
+                        ${this.formatNumber(stat.number)}
+                    </div>
+                    <div class="stat-label">${stat.label}</div>
+                    <div class="stat-change ${stat.change.type}">
+                        <span class="change-icon">
+                            ${stat.change.type === 'positive' ? '↗️' : 
+                              stat.change.type === 'negative' ? '↘️' : '➡️'}
+                        </span>
+                        <span>${stat.change.value}% ${stat.change.text}</span>
+                    </div>
+                </div>
+                <div class="stat-mini-chart">
+                    ${this.renderMiniChart(stat.miniChart)}
+                </div>
+            </div>
+        `).join('');
+
+        // 숫자 카운트업 애니메이션
+        this.animateNumbers();
+    }
+
+    renderMiniChart(data) {
+        const max = Math.max(...data);
+        return data.map(value => {
+            const height = (value / max) * 100;
+            return `<div class="mini-chart-bar" style="--height: ${height}%; height: ${height}%"></div>`;
+        }).join('');
+    }
+
+    animateNumbers() {
+        const numberElements = document.querySelectorAll('.stat-number[data-target]');
+        
+        numberElements.forEach(element => {
+            const target = parseInt(element.getAttribute('data-target'));
+            const duration = 1500; // 1.5초
+            const startTime = Date.now();
+            
+            const updateNumber = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // easeOutQuart 이징 함수
+                const easeProgress = 1 - Math.pow(1 - progress, 4);
+                const current = Math.floor(target * easeProgress);
+                
+                element.textContent = this.formatNumber(current);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                } else {
+                    element.textContent = this.formatNumber(target);
+                }
+            };
+            
+            updateNumber();
+        });
+    }
+
+    formatNumber(num) {
+        if (num >= 1000) {
+            return (num / 1000).toFixed(1).replace('.0', '') + 'K';
+        }
+        return num.toString();
+    }
+
+    setLoading(loading) {
+        this.isLoading = loading;
+        const refreshBtn = document.querySelector('.btn-refresh-stats');
+        
+        if (loading) {
+            refreshBtn.classList.add('loading');
+            this.renderLoadingCards();
+        } else {
+            refreshBtn.classList.remove('loading');
+        }
+    }
+
+    renderLoadingCards() {
+        const container = document.getElementById('stats-grid');
+        const loadingCards = Array(6).fill(0).map(() => `
+            <div class="stat-card loading primary">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-content">
+                    <div class="stat-number">0000</div>
+                    <div class="stat-label">로딩중...</div>
+                    <div class="stat-change neutral">
+                        <span>-</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        container.innerHTML = loadingCards;
+    }
+
+    updateLastUpdatedTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('last-updated-time').textContent = timeString;
+    }
+
+    startAutoRefresh() {
+        // 5분마다 자동 새로고침
+        this.refreshInterval = setInterval(() => {
+            this.loadStats();
+        }, 5 * 60 * 1000);
+    }
+
+    stopAutoRefresh() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
+    }
+
+    handleError(error) {
+        console.error('통계 로드 오류:', error);
+        this.showMessage('통계 데이터를 불러오는 중 오류가 발생했습니다.', 'error');
+        
+        // 오류 시 기본 데이터 표시
+        this.renderErrorState();
+    }
+
+    renderErrorState() {
+        const container = document.getElementById('stats-grid');
+        container.innerHTML = `
+            <div class="error-state" style="grid-column: 1 / -1; text-align: center; padding: 40px;">
+                <div style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;">⚠️</div>
+                <div style="color: rgb(224, 108, 117); font-weight: 500; margin-bottom: 8px;">
+                    데이터를 불러올 수 없습니다
+                </div>
+                <div style="color: rgb(171, 178, 191); font-size: 0.9rem; margin-bottom: 20px;">
+                    네트워크 연결을 확인하고 다시 시도해주세요.
+                </div>
+                <button onclick="refreshStats()" style="
+                    background: rgb(86, 182, 194);
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                ">다시 시도</button>
+            </div>
+        `;
+    }
+
+    async refreshStats() {
+        if (this.isLoading) return;
+        
+        this.showMessage('통계를 새로고침하고 있습니다...', 'info');
+        await this.loadStats();
+        this.showMessage('통계가 업데이트되었습니다.', 'success');
+    }
+
+    showMessage(message, type = 'info') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${type}`;
+        messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? 'rgb(152, 195, 121)' : 
+                        type === 'error' ? 'rgb(224, 108, 117)' : 
+                        type === 'warning' ? 'rgb(229, 192, 123)' : 'rgb(86, 182, 194)'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            animation: slideInRight 0.3s ease;
+        `;
+        
+        document.body.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 3000);
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // API 연동용 메서드들 (향후 구현)
+    async fetchRealTimeStats() {
+        try {
+            const response = await fetch('/api/admin/stats');
+            const data = await response.json();
+            if (data.success) {
+                return data.stats;
+            }
+            throw new Error(data.message || '통계 데이터 조회 실패');
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    getStatById(id) {
+        return this.stats.find(stat => stat.id === id);
+    }
+
+    updateStat(id, newValue) {
+        const stat = this.getStatById(id);
+        if (stat) {
+            stat.number = newValue;
+            this.renderStats();
+        }
+    }
+
+    // 컴포넌트 정리
+    destroy() {
+        this.stopAutoRefresh();
+    }
+}
+
+// 전역 인스턴스
+let statsManager;
+
+// 외부 함수들
+function refreshStats() {
+    if (statsManager) {
+        statsManager.refreshStats();
+    }
+}
+
+// 초기화 함수
+function initStatsCards() {
+    statsManager = new StatsManager();
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof statsManager === 'undefined') {
+        initStatsCards();
+    }
+});
+
+// 페이지 언로드 시 정리
+window.addEventListener('beforeunload', function() {
+    if (statsManager) {
+        statsManager.destroy();
+    }
+});
+</script>

@@ -3,6 +3,11 @@
 ## Project Overview
 You are developing a Flask-based web application for web crawling and video production using AI. The application should follow modern web development best practices with a focus on clean architecture, maintainability, and user experience.
 
+
+#IMPORTANT
+- ALWAYS DO NOT use emojis
+
+
 ## Technology Stack
 
 ### Backend
