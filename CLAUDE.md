@@ -37,10 +37,26 @@ npm install <package-name>
 ```
 spectrum/
 ├── app/                    # Next.js App Router
+│   ├── demo/              # Demo pages
+│   │   ├── components/    # Component showcase page
+│   │   ├── layout.tsx     # Demo layout
+│   │   └── page.tsx       # Main admin dashboard demo
 │   ├── favicon.ico        # App favicon
 │   ├── globals.css        # Global Tailwind CSS styles
 │   ├── layout.tsx         # Root layout component
 │   └── page.tsx           # Home page component
+├── components/            # UI components
+│   ├── ui/               # shadcn/ui components
+│   ├── common/           # Reusable common components
+│   │   ├── forms/        # Form components (DynamicForm, etc.)
+│   │   ├── data-display/ # Data display (DataTable, SearchFilter)
+│   │   ├── feedback/     # Feedback (LoadingState, EmptyState, ErrorBoundary)
+│   │   └── utility/      # Utility (ConfirmDialog, NotificationCenter, etc.)
+│   └── demo/             # Demo-specific components
+│       ├── layout/       # Admin layout components
+│       ├── widgets/      # Dashboard widgets
+│       ├── pages/        # Demo pages
+│       └── demo-example.tsx # Demo examples
 ├── lib/                   # Shared utilities
 │   └── utils.ts           # Utility functions (cn helper)
 ├── public/                # Static assets
@@ -50,7 +66,9 @@ spectrum/
 │   ├── vercel.svg
 │   └── window.svg
 ├── prompts/               # Project documentation
-│   └── requirements.md   # Detailed project requirements
+│   ├── requirements.md   # Detailed project requirements
+│   ├── admin-ui-plan.md  # Admin UI implementation plan
+│   └── components-checklist.md # UI components checklist
 ├── components.json        # shadcn/ui configuration
 ├── eslint.config.mjs     # ESLint configuration
 ├── next.config.ts        # Next.js configuration
@@ -79,7 +97,9 @@ spectrum/
 ### Component Structure
 - `app/` - Next.js App Router pages and layouts
 - `lib/` - Utility functions and shared logic
-- `components/` - Reusable UI components (shadcn/ui structure)
+- `components/ui/` - shadcn/ui base components
+- `components/common/` - Reusable common components
+- `components/demo/` - Demo-specific components and layouts
 - `prompts/` - Project documentation and requirements
 
 ## Key Configuration Files
@@ -123,10 +143,23 @@ The project aims to build a comprehensive platform with:
 
 ## Development Workflow
 
-### Component Development
-- Use shadcn/ui components as base (`npx shadcn@latest add <component>`)
+### UI Implementation Guidelines
+- **MANDATORY**: Always use shadcn/ui components as base (`npx shadcn@latest add <component>`)
+- **NO EMOJIS**: Do not use emojis in code, comments, or UI text
 - Follow the established Tailwind + TypeScript patterns
 - Leverage the `cn()` utility in `lib/utils.ts` for conditional classes
+- Reference existing demo components in `components/demo/` for UI patterns
+
+### Component Development Best Practices
+- Use existing demo components as reference for layout and styling patterns
+- Follow the admin dashboard design patterns established in `components/demo/`
+- Prioritize consistency with existing component structure
+- Always implement responsive design using Tailwind CSS breakpoints
+
+### Available Demo Components Reference
+- **Layout**: AdminLayout, Sidebar, Header (in `components/demo/layout/`)
+- **Widgets**: StatCard, MetricChart, SystemMonitor (in `components/demo/widgets/`)
+- **Common**: DynamicForm, DataTable, SearchFilter, LoadingState, EmptyState, ErrorBoundary, ConfirmDialog, NotificationCenter (in `components/common/`)
 
 ### API Integration Planning
 - Backend services will be Flask-based with RESTful APIs
@@ -134,12 +167,28 @@ The project aims to build a comprehensive platform with:
 - Consider API route handlers in Next.js for proxy/middleware functionality
 
 ### State Management
-- No global state management currently configured
+- Use NotificationProvider for notifications (already implemented)
 - Plan for integration with backend APIs and potential addition of Zustand or Context API
+
+## Demo Pages Access
+
+### Available Demo URLs
+- **Main Admin Dashboard**: `http://localhost:3000/demo`
+- **Component Showcase**: `http://localhost:3000/demo/components`
+
+### Demo Features
+- Complete admin dashboard layout with sidebar navigation
+- Real-time system monitoring widgets
+- Data visualization charts (Recharts-based)
+- Comprehensive component showcase demonstrating all UI patterns
+- Responsive design with dark mode support
 
 ## Important Notes
 
 - Project uses Turbopack for faster development and builds
 - shadcn/ui components use CSS variables for theming
 - TypeScript paths are configured for clean imports
+- **NO EMOJIS**: Strictly avoid emojis in all code and UI implementations
+- **MANDATORY shadcn/ui**: All UI components must use shadcn/ui as foundation
+- Reference demo components for consistent UI patterns and layouts
 - Current setup is frontend-only; backend integration is planned based on requirements document
