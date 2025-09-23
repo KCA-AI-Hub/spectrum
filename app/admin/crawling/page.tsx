@@ -5,13 +5,11 @@ import { Progress } from "@/components/ui/progress"
 import {
   Globe,
   Play,
-  Pause,
   Settings,
   BarChart3,
   Clock,
   CheckCircle,
-  XCircle,
-  AlertTriangle
+  XCircle
 } from "lucide-react"
 import Link from "next/link"
 
@@ -78,8 +76,8 @@ export default function CrawlingManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">크롤링 관리</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">크롤링 관리</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             웹 크롤링 소스와 작업을 관리합니다
           </p>
         </div>
@@ -101,7 +99,7 @@ export default function CrawlingManagement() {
           <Card key={index}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">{stat.label}</span>
+                <span className="text-sm text-muted-foreground">{stat.label}</span>
                 <Badge variant={stat.status === "good" ? "default" : stat.status === "warning" ? "secondary" : "outline"}>
                   {stat.status === "good" ? "양호" : stat.status === "warning" ? "주의" : "정상"}
                 </Badge>
@@ -118,9 +116,9 @@ export default function CrawlingManagement() {
         <Link href="/admin/crawling/sources">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Globe className="h-8 w-8 mx-auto mb-3 text-blue-600" />
+              <Globe className="h-8 w-8 mx-auto mb-3 text-chart-1" />
               <h3 className="font-medium mb-2">소스 관리</h3>
-              <p className="text-sm text-gray-500">크롤링 대상 사이트 관리</p>
+              <p className="text-sm text-muted-foreground">크롤링 대상 사이트 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -128,9 +126,9 @@ export default function CrawlingManagement() {
         <Link href="/admin/crawling/schedules">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Clock className="h-8 w-8 mx-auto mb-3 text-green-600" />
+              <Clock className="h-8 w-8 mx-auto mb-3 text-chart-2" />
               <h3 className="font-medium mb-2">스케줄 관리</h3>
-              <p className="text-sm text-gray-500">크롤링 일정 및 주기 설정</p>
+              <p className="text-sm text-muted-foreground">크롤링 일정 및 주기 설정</p>
             </CardContent>
           </Card>
         </Link>
@@ -138,9 +136,9 @@ export default function CrawlingManagement() {
         <Link href="/admin/crawling/monitoring">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <BarChart3 className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+              <BarChart3 className="h-8 w-8 mx-auto mb-3 text-chart-3" />
               <h3 className="font-medium mb-2">모니터링</h3>
-              <p className="text-sm text-gray-500">실시간 크롤링 상태 확인</p>
+              <p className="text-sm text-muted-foreground">실시간 크롤링 상태 확인</p>
             </CardContent>
           </Card>
         </Link>
@@ -148,9 +146,9 @@ export default function CrawlingManagement() {
         <Link href="/admin/crawling/quality">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <CheckCircle className="h-8 w-8 mx-auto mb-3 text-orange-600" />
+              <CheckCircle className="h-8 w-8 mx-auto mb-3 text-chart-4" />
               <h3 className="font-medium mb-2">데이터 품질</h3>
-              <p className="text-sm text-gray-500">수집 데이터 품질 관리</p>
+              <p className="text-sm text-muted-foreground">수집 데이터 품질 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -167,9 +165,9 @@ export default function CrawlingManagement() {
               <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    {crawl.status === "success" && <CheckCircle className="h-5 w-5 text-green-600" />}
-                    {crawl.status === "running" && <Play className="h-5 w-5 text-blue-600" />}
-                    {crawl.status === "error" && <XCircle className="h-5 w-5 text-red-600" />}
+                    {crawl.status === "success" && <CheckCircle className="h-5 w-5 text-chart-2" />}
+                    {crawl.status === "running" && <Play className="h-5 w-5 text-chart-1" />}
+                    {crawl.status === "error" && <XCircle className="h-5 w-5 text-destructive" />}
                     <span className="font-medium">{crawl.source}</span>
                   </div>
                   <Badge variant={
@@ -182,7 +180,7 @@ export default function CrawlingManagement() {
                      "실패"}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-6 text-sm text-gray-600">
+                <div className="flex items-center gap-6 text-sm text-muted-foreground">
                   <span>아이템: {crawl.items}</span>
                   <span>소요시간: {crawl.duration}</span>
                   <span>마지막 실행: {crawl.lastRun}</span>

@@ -1,0 +1,195 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 크롤링 대상 사이트 관리
+model CrawlTarget {
+  id          String   @id @default(cuid())
+  name        String
+  url         String   @unique
+  selector    String?
+  isActive    Boolean  @default(true)
+  crawlJobs   CrawlJob[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 크롤링 작업 관리
+model CrawlJob {
+  id            String      @id @default(cuid())
+  targetId      String
+  target        CrawlTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  status        CrawlStatus @default(PENDING)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  errorMessage  String?
+  totalItems    Int         @default(0)
+  processedItems Int        @default(0)
+  articles      Article[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum CrawlStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// 수집된 기사 데이터
+model Article {
+  id              String      @id @default(cuid())
+  crawlJobId      String
+  crawlJob        CrawlJob    @relation(fields: [crawlJobId], references: [id], onDelete: Cascade)
+  title           String
+  content         String
+  url             String      @unique
+  author          String?
+  publishedAt     DateTime?
+  extractedAt     DateTime    @default(now())
+  imageUrl        String?
+  tags            String?
+  status          ArticleStatus @default(RAW)
+  summaries       Summary[]
+  videos          Video[]
+  quizzes         Quiz[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+enum ArticleStatus {
+  RAW
+  PROCESSED
+  ANALYZED
+  SUMMARIZED
+  FAILED
+}
+
+// AI 생성 요약
+model Summary {
+  id          String      @id @default(cuid())
+  articleId   String
+  article     Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  type        SummaryType
+  content     String
+  keywords    String?
+  sentiment   String?
+  quality     Float?
+  version     Int         @default(1)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum SummaryType {
+  SHORT
+  MEDIUM
+  LONG
+  BULLET_POINTS
+  KEYWORDS_ONLY
+}
+
+// 동영상 생성 관리
+model Video {
+  id            String      @id @default(cuid())
+  articleId     String?
+  article       Article?    @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  title         String
+  description   String?
+  prompt        String
+  filePath      String?
+  duration      Int?
+  status        VideoStatus @default(PENDING)
+  errorMessage  String?
+  metadata      String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum VideoStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+// 퀴즈 시스템
+model Quiz {
+  id          String        @id @default(cuid())
+  articleId   String?
+  article     Article?      @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  questions   Question[]
+  attempts    QuizAttempt[]
+  isPublic    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  quizId        String
+  quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type          QuestionType
+  question      String
+  options       String?
+  correctAnswer String
+  explanation   String?
+  points        Int          @default(1)
+  order         Int
+  answers       Answer[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  FILL_BLANK
+  SHORT_ANSWER
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  userName    String?
+  score       Int      @default(0)
+  totalPoints Int      @default(0)
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  answers     Answer[]
+}
+
+model Answer {
+  id            String      @id @default(cuid())
+  attemptId     String
+  attempt       QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswer    String
+  isCorrect     Boolean
+  points        Int         @default(0)
+  answeredAt    DateTime    @default(now())
+}
+
+// 시스템 설정
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

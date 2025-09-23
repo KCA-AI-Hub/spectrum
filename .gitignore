@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/playwright/.cache/
 
 # next.js
 /.next/
@@ -19,10 +22,12 @@
 
 # production
 /build
+/dist/
 
 # misc
 .DS_Store
 *.pem
+.turbo
 
 # debug
 npm-debug.log*
@@ -32,6 +37,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +45,52 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma
+/lib/generated/prisma
+/prisma/dev.db
+/prisma/dev.db-journal
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Cache directories
+.cache/
+.parcel-cache/
+.nyc_output/
+coverage/
+
+# Temporary directories
+tmp/
+temp/
+
+# Logs
+logs/
+*.log
+
+# MCP and Claude
+.claude/
+.playwright-mcp/
+
+# Generated files
+generated/
+
+# Local development
+.local/

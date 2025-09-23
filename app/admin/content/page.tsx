@@ -78,8 +78,8 @@ export default function ContentManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">콘텐츠 관리</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">콘텐츠 관리</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             AI 생성 콘텐츠와 품질을 관리합니다
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function ContentManagement() {
           <Card key={index}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">{stat.label}</span>
+                <span className="text-sm text-muted-foreground">{stat.label}</span>
                 <Badge variant={stat.trend === "up" ? "default" : "destructive"}>
                   {stat.change}
                 </Badge>
@@ -117,9 +117,9 @@ export default function ContentManagement() {
         <Link href="/admin/content/summaries">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Brain className="h-8 w-8 mx-auto mb-3 text-blue-600" />
+              <Brain className="h-8 w-8 mx-auto mb-3 text-chart-1" />
               <h3 className="font-medium mb-2">요약 관리</h3>
-              <p className="text-sm text-gray-500">AI 문서 요약 관리</p>
+              <p className="text-sm text-muted-foreground">AI 문서 요약 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -127,9 +127,9 @@ export default function ContentManagement() {
         <Link href="/admin/content/videos">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Video className="h-8 w-8 mx-auto mb-3 text-red-600" />
+              <Video className="h-8 w-8 mx-auto mb-3 text-destructive" />
               <h3 className="font-medium mb-2">동영상 관리</h3>
-              <p className="text-sm text-gray-500">AI 동영상 생성 관리</p>
+              <p className="text-sm text-muted-foreground">AI 동영상 생성 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -137,9 +137,9 @@ export default function ContentManagement() {
         <Link href="/admin/content/quizzes">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <CheckSquare className="h-8 w-8 mx-auto mb-3 text-green-600" />
+              <CheckSquare className="h-8 w-8 mx-auto mb-3 text-chart-2" />
               <h3 className="font-medium mb-2">퀴즈 관리</h3>
-              <p className="text-sm text-gray-500">자동 퀴즈 생성 관리</p>
+              <p className="text-sm text-muted-foreground">자동 퀴즈 생성 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -147,9 +147,9 @@ export default function ContentManagement() {
         <Link href="/admin/content/quality">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <TrendingUp className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+              <TrendingUp className="h-8 w-8 mx-auto mb-3 text-chart-3" />
               <h3 className="font-medium mb-2">품질 검토</h3>
-              <p className="text-sm text-gray-500">콘텐츠 품질 관리</p>
+              <p className="text-sm text-muted-foreground">콘텐츠 품질 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -197,14 +197,14 @@ export default function ContentManagement() {
               {recentContent.map((content, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gray-100">
+                    <div className="p-2 rounded-lg bg-muted">
                       {content.type === "summary" && <FileText className="h-4 w-4" />}
                       {content.type === "video" && <Video className="h-4 w-4" />}
                       {content.type === "quiz" && <CheckSquare className="h-4 w-4" />}
                     </div>
                     <div>
                       <div className="font-medium text-sm">{content.title}</div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         {content.createdAt}
                         <Users className="h-3 w-3 ml-2" />

@@ -4,191 +4,95 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Spectrum is a web crawling-based platform for automated content analysis and short-form video creation. The project currently has a Next.js frontend foundation with plans to integrate Python Flask backend services for web crawling, document summarization, AI video generation, and quiz creation.
+Spectrum is a Next.js 15 application built with TypeScript, React 19, and Tailwind CSS. The project follows the App Router pattern and is configured with shadcn/ui components for the UI framework. The application appears to be designed as an admin dashboard system.
 
 ## Development Commands
 
-### Frontend (Next.js)
-```bash
-# Development with Turbopack
-npm run dev
+- **Development server**: `npm run dev` (uses Turbopack for faster builds)
+- **Production build**: `npm run build` (uses Turbopack)
+- **Start production**: `npm start`
+- **Linting**: `npm run lint` (ESLint configuration)
 
-# Build for production with Turbopack
-npm run build
+## Architecture
 
-# Start production server
-npm start
+### Tech Stack
+- **Framework**: Next.js 15 with App Router
+- **UI Library**: shadcn/ui with Radix UI primitives
+- **Styling**: Tailwind CSS v4 with CSS variables
+- **Type System**: TypeScript with strict mode
+- **Form Handling**: React Hook Form with Zod validation
+- **State Management**: React built-in state (no external state management detected)
+- **Data Visualization**: Recharts for charts and metrics
+- **Icons**: Lucide React
 
-# Lint code
-npm run lint
+### Project Structure
+```
+app/
+├── admin/           # Admin dashboard pages
+│   ├── content/     # Content management
+│   ├── crawling/    # Data crawling features
+│   ├── users/       # User management
+│   └── system/      # System administration
+├── globals.css      # Global styles and Tailwind imports
+├── layout.tsx       # Root layout with font configuration
+└── page.tsx         # Landing page
+
+lib/
+└── utils.ts         # Utility functions (likely contains cn() for class merging)
 ```
 
-### Package Management
-```bash
-# Install dependencies
-npm install
+### Component Architecture
+The project uses shadcn/ui component system with:
+- **Style**: "new-york" variant
+- **Base Color**: Slate
+- **Path Aliases**: `@/components`, `@/lib`, `@/ui`, `@/hooks`
+- **Icon Library**: Lucide React
 
-# Install specific package
-npm install <package-name>
-```
+Admin layout follows a sidebar + header pattern with:
+- Sidebar navigation on the left
+- Header bar at the top
+- Main content area with scroll and padding
 
-## Project Structure
+### Key Dependencies
+- **UI Components**: Extensive Radix UI primitives for accessibility
+- **Data Tables**: TanStack React Table for complex data display
+- **Date Handling**: date-fns and react-day-picker
+- **File Uploads**: react-dropzone
+- **Notifications**: Sonner for toast notifications
+- **Theming**: next-themes for dark/light mode support
 
-```
-spectrum/
-├── app/                    # Next.js App Router
-│   ├── demo/              # Demo pages
-│   │   ├── components/    # Component showcase page
-│   │   ├── layout.tsx     # Demo layout
-│   │   └── page.tsx       # Main admin dashboard demo
-│   ├── favicon.ico        # App favicon
-│   ├── globals.css        # Global Tailwind CSS styles
-│   ├── layout.tsx         # Root layout component
-│   └── page.tsx           # Home page component
-├── components/            # UI components
-│   ├── ui/               # shadcn/ui components
-│   ├── common/           # Reusable common components
-│   │   ├── forms/        # Form components (DynamicForm, etc.)
-│   │   ├── data-display/ # Data display (DataTable, SearchFilter)
-│   │   ├── feedback/     # Feedback (LoadingState, EmptyState, ErrorBoundary)
-│   │   └── utility/      # Utility (ConfirmDialog, NotificationCenter, etc.)
-│   └── demo/             # Demo-specific components
-│       ├── layout/       # Admin layout components
-│       ├── widgets/      # Dashboard widgets
-│       ├── pages/        # Demo pages
-│       └── demo-example.tsx # Demo examples
-├── lib/                   # Shared utilities
-│   └── utils.ts           # Utility functions (cn helper)
-├── public/                # Static assets
-│   ├── file.svg          # Static SVG icons
-│   ├── globe.svg
-│   ├── next.svg
-│   ├── vercel.svg
-│   └── window.svg
-├── prompts/               # Project documentation
-│   ├── requirements.md   # Detailed project requirements
-│   ├── admin-ui-plan.md  # Admin UI implementation plan
-│   └── components-checklist.md # UI components checklist
-├── components.json        # shadcn/ui configuration
-├── eslint.config.mjs     # ESLint configuration
-├── next.config.ts        # Next.js configuration
-├── next-env.d.ts         # Next.js TypeScript declarations
-├── package.json          # Dependencies and scripts
-├── postcss.config.mjs    # PostCSS configuration
-├── tsconfig.json         # TypeScript configuration
-├── CLAUDE.md             # This file
-└── README.md             # Basic project setup guide
-```
+## Development Guidelines
 
-## Architecture Overview
+### UI Component Development
+**IMPORTANT**: When creating or adding UI components, ALWAYS use the shadcn MCP tools available in Claude Code:
+- Use `mcp__shadcn__search_items_in_registries` to find components
+- Use `mcp__shadcn__view_items_in_registries` to view component details
+- Use `mcp__shadcn__get_add_command_for_items` to get installation commands
+- Use `mcp__shadcn__get_item_examples_from_registries` for usage examples
 
-### Current Structure
-- **Frontend**: Next.js 15.5.3 with React 19.1.0, using App Router
-- **UI Framework**: shadcn/ui components with Tailwind CSS v4
-- **TypeScript**: Full TypeScript support with strict configuration
-- **Styling**: Tailwind CSS with CSS variables and Geist fonts
+Never manually create shadcn/ui components - always use the MCP tools to ensure proper installation and configuration.
 
-### Planned Architecture (from requirements)
-- **Backend**: Python Flask with PostgreSQL and Redis
-- **AI Services**: OpenAI API, fal.ai API for video generation
-- **Crawling**: BeautifulSoup, Scrapy, Selenium
-- **Task Queue**: Celery + Redis
+### Code Style
+- **NO EMOJIS**: Never use emojis in code, comments, or any file content
+- Follow existing code conventions and patterns
+- Use TypeScript strict mode consistently
 
-### Component Structure
-- `app/` - Next.js App Router pages and layouts
-- `lib/` - Utility functions and shared logic
-- `components/ui/` - shadcn/ui base components
-- `components/common/` - Reusable common components
-- `components/demo/` - Demo-specific components and layouts
-- `prompts/` - Project documentation and requirements
+### Path Resolution
+Uses `@/` prefix for imports pointing to project root. All component imports should use absolute paths via the configured aliases.
 
-## Key Configuration Files
+### Form Handling
+Forms should use React Hook Form with Zod validation schemas. The project includes @hookform/resolvers for seamless integration.
 
-### Frontend Setup
-- `components.json` - shadcn/ui configuration with "new-york" style
-- `tsconfig.json` - TypeScript configuration with path aliases (`@/*`)
-- `next.config.ts` - Next.js configuration (currently minimal)
-- `package.json` - Dependencies and npm scripts with Turbopack enabled
+### Styling Approach
+- Uses Tailwind CSS with CSS variables for theming
+- Components follow shadcn/ui patterns with class-variance-authority for variant handling
+- Global styles in `app/globals.css`
 
-### Path Aliases
-- `@/components` - UI components
-- `@/lib` - Utility functions
-- `@/hooks` - React hooks
-- `@/ui` - shadcn/ui components
+### Component Organization
+Based on the deleted files in git status, the project previously had a comprehensive component structure:
+- `components/ui/` - Base UI components (shadcn/ui)
+- `components/admin/` - Admin-specific components
+- `components/common/` - Shared utility components
+- `components/demo/` - Demo/example components
 
-## Technology Stack
-
-### Current Frontend
-- **Framework**: Next.js 15.5.3 with App Router
-- **React**: 19.1.0
-- **Styling**: Tailwind CSS v4 with PostCSS
-- **UI Components**: shadcn/ui with Lucide React icons
-- **Utilities**: clsx, tailwind-merge for className management
-- **Animation**: tw-animate-css
-
-### Development Tools
-- **TypeScript**: v5 with strict mode
-- **ESLint**: v9 with Next.js config
-- **Build**: Turbopack for faster builds
-
-## Project Requirements Context
-
-The project aims to build a comprehensive platform with:
-
-1. **Web Crawling System** - News sites, social media, specialized domains
-2. **Document Summarization** - AI-powered multi-level summarization
-3. **Video Generation** - fal.ai API integration for short-form videos
-4. **Quiz Generation** - Automated quiz creation from summaries
-5. **User Management** - Employee ID-based authentication system
-
-## Development Workflow
-
-### UI Implementation Guidelines
-- **MANDATORY**: Always use shadcn/ui components as base (`npx shadcn@latest add <component>`)
-- **NO EMOJIS**: Do not use emojis in code, comments, or UI text
-- Follow the established Tailwind + TypeScript patterns
-- Leverage the `cn()` utility in `lib/utils.ts` for conditional classes
-- Reference existing demo components in `components/demo/` for UI patterns
-
-### Component Development Best Practices
-- Use existing demo components as reference for layout and styling patterns
-- Follow the admin dashboard design patterns established in `components/demo/`
-- Prioritize consistency with existing component structure
-- Always implement responsive design using Tailwind CSS breakpoints
-
-### Available Demo Components Reference
-- **Layout**: AdminLayout, Sidebar, Header (in `components/demo/layout/`)
-- **Widgets**: StatCard, MetricChart, SystemMonitor (in `components/demo/widgets/`)
-- **Common**: DynamicForm, DataTable, SearchFilter, LoadingState, EmptyState, ErrorBoundary, ConfirmDialog, NotificationCenter (in `components/common/`)
-
-### API Integration Planning
-- Backend services will be Flask-based with RESTful APIs
-- Frontend will consume these APIs for crawling, summarization, and video generation
-- Consider API route handlers in Next.js for proxy/middleware functionality
-
-### State Management
-- Use NotificationProvider for notifications (already implemented)
-- Plan for integration with backend APIs and potential addition of Zustand or Context API
-
-## Demo Pages Access
-
-### Available Demo URLs
-- **Main Admin Dashboard**: `http://localhost:3000/demo`
-- **Component Showcase**: `http://localhost:3000/demo/components`
-
-### Demo Features
-- Complete admin dashboard layout with sidebar navigation
-- Real-time system monitoring widgets
-- Data visualization charts (Recharts-based)
-- Comprehensive component showcase demonstrating all UI patterns
-- Responsive design with dark mode support
-
-## Important Notes
-
-- Project uses Turbopack for faster development and builds
-- shadcn/ui components use CSS variables for theming
-- TypeScript paths are configured for clean imports
-- **NO EMOJIS**: Strictly avoid emojis in all code and UI implementations
-- **MANDATORY shadcn/ui**: All UI components must use shadcn/ui as foundation
-- Reference demo components for consistent UI patterns and layouts
-- Current setup is frontend-only; backend integration is planned based on requirements document
+When creating new components, follow the established patterns and use the shadcn CLI for adding new UI components.

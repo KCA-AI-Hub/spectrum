@@ -103,22 +103,22 @@ const systemMetrics = [
 function getStatusColor(status: string) {
   switch (status) {
     case "healthy":
-      return "text-green-600"
+      return "text-chart-2"
     case "warning":
-      return "text-yellow-600"
+      return "text-chart-4"
     case "error":
-      return "text-red-600"
+      return "text-destructive"
     default:
-      return "text-gray-600"
+      return "text-muted-foreground"
   }
 }
 
 function getStatusBadge(status: string) {
   switch (status) {
     case "healthy":
-      return <Badge className="bg-green-100 text-green-800">정상</Badge>
+      return <Badge className="bg-chart-2/10 text-chart-2">정상</Badge>
     case "warning":
-      return <Badge className="bg-yellow-100 text-yellow-800">주의</Badge>
+      return <Badge className="bg-chart-4/10 text-chart-4">주의</Badge>
     case "error":
       return <Badge variant="destructive">오류</Badge>
     default:
@@ -129,13 +129,13 @@ function getStatusBadge(status: string) {
 function getAlertIcon(type: string) {
   switch (type) {
     case "error":
-      return <AlertTriangle className="h-4 w-4 text-red-600" />
+      return <AlertTriangle className="h-4 w-4 text-destructive" />
     case "warning":
-      return <AlertTriangle className="h-4 w-4 text-yellow-600" />
+      return <AlertTriangle className="h-4 w-4 text-chart-4" />
     case "info":
-      return <CheckCircle className="h-4 w-4 text-blue-600" />
+      return <CheckCircle className="h-4 w-4 text-chart-1" />
     default:
-      return <AlertTriangle className="h-4 w-4 text-gray-600" />
+      return <AlertTriangle className="h-4 w-4 text-muted-foreground" />
   }
 }
 
@@ -144,8 +144,8 @@ export default function SystemManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">시스템 관리</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">시스템 관리</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             시스템 상태 모니터링과 설정을 관리합니다
           </p>
         </div>
@@ -175,11 +175,11 @@ export default function SystemManagement() {
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">가동률</span>
+                  <span className="text-muted-foreground">가동률</span>
                   <span className="font-medium">{service.uptime}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">부하</span>
+                  <span className="text-muted-foreground">부하</span>
                   <span className="font-medium">{service.load}%</span>
                 </div>
                 <Progress value={service.load} className="h-2" />
@@ -194,9 +194,9 @@ export default function SystemManagement() {
         <Link href="/admin/system/performance">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Activity className="h-8 w-8 mx-auto mb-3 text-blue-600" />
+              <Activity className="h-8 w-8 mx-auto mb-3 text-chart-1" />
               <h3 className="font-medium mb-2">성능 모니터링</h3>
-              <p className="text-sm text-gray-500">시스템 성능 지표 확인</p>
+              <p className="text-sm text-muted-foreground">시스템 성능 지표 확인</p>
             </CardContent>
           </Card>
         </Link>
@@ -204,9 +204,9 @@ export default function SystemManagement() {
         <Link href="/admin/system/notifications">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Bell className="h-8 w-8 mx-auto mb-3 text-green-600" />
+              <Bell className="h-8 w-8 mx-auto mb-3 text-chart-2" />
               <h3 className="font-medium mb-2">알림 설정</h3>
-              <p className="text-sm text-gray-500">시스템 알림 규칙 관리</p>
+              <p className="text-sm text-muted-foreground">시스템 알림 규칙 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -214,9 +214,9 @@ export default function SystemManagement() {
         <Link href="/admin/system/logs">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <FileText className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+              <FileText className="h-8 w-8 mx-auto mb-3 text-chart-3" />
               <h3 className="font-medium mb-2">로그 관리</h3>
-              <p className="text-sm text-gray-500">시스템 로그 조회 및 분석</p>
+              <p className="text-sm text-muted-foreground">시스템 로그 조회 및 분석</p>
             </CardContent>
           </Card>
         </Link>
@@ -224,9 +224,9 @@ export default function SystemManagement() {
         <Link href="/admin/system/settings">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Settings className="h-8 w-8 mx-auto mb-3 text-orange-600" />
+              <Settings className="h-8 w-8 mx-auto mb-3 text-chart-5" />
               <h3 className="font-medium mb-2">설정</h3>
-              <p className="text-sm text-gray-500">전역 시스템 설정</p>
+              <p className="text-sm text-muted-foreground">전역 시스템 설정</p>
             </CardContent>
           </Card>
         </Link>
@@ -244,7 +244,7 @@ export default function SystemManagement() {
                 <div key={index} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <metric.icon className="h-4 w-4 text-gray-600" />
+                      <metric.icon className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">{metric.label}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -257,23 +257,23 @@ export default function SystemManagement() {
               ))}
             </div>
 
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
               <h4 className="text-sm font-medium mb-3">시스템 정보</h4>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <span className="text-gray-500">가동시간:</span>
+                  <span className="text-muted-foreground">가동시간:</span>
                   <span className="ml-2 font-medium">15일 7시간</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">프로세스:</span>
+                  <span className="text-muted-foreground">프로세스:</span>
                   <span className="ml-2 font-medium">234개</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">연결수:</span>
+                  <span className="text-muted-foreground">연결수:</span>
                   <span className="ml-2 font-medium">89개</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">로드 평균:</span>
+                  <span className="text-muted-foreground">로드 평균:</span>
                   <span className="ml-2 font-medium">0.65</span>
                 </div>
               </div>
@@ -293,8 +293,8 @@ export default function SystemManagement() {
                   {getAlertIcon(alert.type)}
                   <div className="flex-1">
                     <div className="font-medium text-sm">{alert.title}</div>
-                    <p className="text-sm text-gray-600 mt-1">{alert.description}</p>
-                    <span className="text-xs text-gray-500 mt-2 block">{alert.time}</span>
+                    <p className="text-sm text-muted-foreground mt-1">{alert.description}</p>
+                    <span className="text-xs text-muted-foreground/80 mt-2 block">{alert.time}</span>
                   </div>
                 </div>
               ))}

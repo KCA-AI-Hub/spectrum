@@ -31,8 +31,7 @@ import {
   User,
   Clock,
   CheckCircle,
-  XCircle,
-  AlertCircle
+  XCircle
 } from "lucide-react"
 import Link from "next/link"
 
@@ -41,25 +40,25 @@ const userStats = [
     label: "총 사용자",
     value: "1,247",
     change: "+12",
-    color: "text-blue-600"
+    color: "text-chart-1"
   },
   {
     label: "활성 사용자",
     value: "89",
     change: "+5",
-    color: "text-green-600"
+    color: "text-chart-2"
   },
   {
     label: "관리자",
     value: "8",
     change: "+1",
-    color: "text-purple-600"
+    color: "text-chart-3"
   },
   {
     label: "비활성 계정",
     value: "23",
     change: "-3",
-    color: "text-orange-600"
+    color: "text-chart-4"
   }
 ]
 
@@ -117,9 +116,9 @@ const users = [
 function getRoleBadge(role: string) {
   switch (role) {
     case "admin":
-      return <Badge className="bg-red-100 text-red-800">관리자</Badge>
+      return <Badge className="bg-destructive/10 text-destructive">관리자</Badge>
     case "moderator":
-      return <Badge className="bg-blue-100 text-blue-800">모더레이터</Badge>
+      return <Badge className="bg-chart-1/10 text-chart-1">모더레이터</Badge>
     case "user":
       return <Badge variant="secondary">사용자</Badge>
     default:
@@ -130,7 +129,7 @@ function getRoleBadge(role: string) {
 function getStatusBadge(status: string) {
   switch (status) {
     case "active":
-      return <Badge className="bg-green-100 text-green-800">활성</Badge>
+      return <Badge className="bg-chart-2/10 text-chart-2">활성</Badge>
     case "inactive":
       return <Badge variant="secondary">비활성</Badge>
     case "suspended":
@@ -159,8 +158,8 @@ export default function UserManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">사용자 관리</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">사용자 관리</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             시스템 사용자 계정과 권한을 관리합니다
           </p>
         </div>
@@ -182,7 +181,7 @@ export default function UserManagement() {
           <Card key={index}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">{stat.label}</span>
+                <span className="text-sm text-muted-foreground">{stat.label}</span>
                 <span className={`text-sm font-medium ${stat.color}`}>
                   {stat.change}
                 </span>
@@ -198,9 +197,9 @@ export default function UserManagement() {
         <Link href="/admin/users/accounts">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <User className="h-8 w-8 mx-auto mb-3 text-blue-600" />
+              <User className="h-8 w-8 mx-auto mb-3 text-chart-1" />
               <h3 className="font-medium mb-2">계정 관리</h3>
-              <p className="text-sm text-gray-500">사용자 계정 생성 및 관리</p>
+              <p className="text-sm text-muted-foreground">사용자 계정 생성 및 관리</p>
             </CardContent>
           </Card>
         </Link>
@@ -208,9 +207,9 @@ export default function UserManagement() {
         <Link href="/admin/users/permissions">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Shield className="h-8 w-8 mx-auto mb-3 text-green-600" />
+              <Shield className="h-8 w-8 mx-auto mb-3 text-chart-2" />
               <h3 className="font-medium mb-2">권한 관리</h3>
-              <p className="text-sm text-gray-500">역할 및 접근 권한 설정</p>
+              <p className="text-sm text-muted-foreground">역할 및 접근 권한 설정</p>
             </CardContent>
           </Card>
         </Link>
@@ -218,9 +217,9 @@ export default function UserManagement() {
         <Link href="/admin/users/analytics">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Users className="h-8 w-8 mx-auto mb-3 text-purple-600" />
+              <Users className="h-8 w-8 mx-auto mb-3 text-chart-3" />
               <h3 className="font-medium mb-2">활동 분석</h3>
-              <p className="text-sm text-gray-500">사용자 행동 분석</p>
+              <p className="text-sm text-muted-foreground">사용자 행동 분석</p>
             </CardContent>
           </Card>
         </Link>
@@ -228,9 +227,9 @@ export default function UserManagement() {
         <Link href="/admin/users/statistics">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Clock className="h-8 w-8 mx-auto mb-3 text-orange-600" />
+              <Clock className="h-8 w-8 mx-auto mb-3 text-chart-4" />
               <h3 className="font-medium mb-2">통계</h3>
-              <p className="text-sm text-gray-500">사용 통계 및 리포트</p>
+              <p className="text-sm text-muted-foreground">사용 통계 및 리포트</p>
             </CardContent>
           </Card>
         </Link>
@@ -241,7 +240,7 @@ export default function UserManagement() {
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="이름, 이메일, 사번 검색..."
                 value={searchTerm}
@@ -299,14 +298,14 @@ export default function UserManagement() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                      <div className="text-xs text-gray-400">{user.employeeId}</div>
+                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <div className="text-xs text-muted-foreground/80">{user.employeeId}</div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium text-sm">{user.department}</div>
-                      <div className="text-sm text-gray-500">{user.position}</div>
+                      <div className="text-sm text-muted-foreground">{user.position}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -318,9 +317,9 @@ export default function UserManagement() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {user.status === "active" ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-chart-2" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-gray-400" />
+                        <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
                       <span className="text-sm">{user.lastLogin}</span>
                     </div>

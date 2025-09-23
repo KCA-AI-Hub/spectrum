@@ -107,7 +107,7 @@ function getTypeIcon(type: string) {
 function getStatusBadge(status: string) {
   switch (status) {
     case "active":
-      return <Badge className="bg-green-100 text-green-800">활성</Badge>
+      return <Badge className="bg-chart-2/10 text-chart-2">활성</Badge>
     case "inactive":
       return <Badge variant="secondary">비활성</Badge>
     case "error":
@@ -135,8 +135,8 @@ export default function CrawlingSources() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">크롤링 소스 관리</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">크롤링 소스 관리</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             크롤링 대상 사이트와 API를 관리합니다
           </p>
         </div>
@@ -151,7 +151,7 @@ export default function CrawlingSources() {
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="소스 이름 또는 URL 검색..."
                 value={searchTerm}
@@ -210,7 +210,7 @@ export default function CrawlingSources() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{source.name}</div>
-                      <div className="text-sm text-gray-500">{source.url}</div>
+                      <div className="text-sm text-muted-foreground">{source.url}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -227,8 +227,8 @@ export default function CrawlingSources() {
                     <div className="flex items-center gap-2">
                       {source.status === "active" && source.lastCrawl === "진행중" ? (
                         <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-                          <span className="text-blue-600">진행중</span>
+                          <div className="w-2 h-2 bg-chart-1 rounded-full animate-pulse" />
+                          <span className="text-chart-1">진행중</span>
                         </div>
                       ) : (
                         <span>{source.lastCrawl}</span>
@@ -239,11 +239,11 @@ export default function CrawlingSources() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {source.successRate > 95 ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-chart-2" />
                       ) : source.successRate > 80 ? (
-                        <CheckCircle className="h-4 w-4 text-yellow-600" />
+                        <CheckCircle className="h-4 w-4 text-chart-4" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                       )}
                       <span>{source.successRate}%</span>
                     </div>
