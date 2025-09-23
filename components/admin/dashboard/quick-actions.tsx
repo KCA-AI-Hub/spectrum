@@ -2,6 +2,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Plus, Play, FileText, Video, Users } from "lucide-react"
 import Link from "next/link"
 
@@ -46,25 +52,38 @@ export function QuickActions() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {quickActions.map((action) => (
-            <Link key={action.title} href={action.href}>
-              <Button
-                variant={action.variant}
-                className="h-auto w-full p-4 text-left"
-              >
-                <div className="flex items-start space-x-3">
-                  <action.icon className="h-5 w-5 mt-1 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium">{action.title}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {action.description}
-                    </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <TooltipProvider>
+            {quickActions.map((action) => (
+              <Tooltip key={action.title}>
+                <TooltipTrigger asChild>
+                  <Link href={action.href}>
+                    <Button
+                      variant={action.variant}
+                      className="h-auto w-full p-3 text-left justify-start"
+                      size="sm"
+                    >
+                      <div className="flex items-center space-x-2 w-full min-w-0">
+                        <action.icon className="h-4 w-4 flex-shrink-0" />
+                        <div className="flex-1 min-w-0 overflow-hidden">
+                          <div className="font-medium text-sm truncate">{action.title}</div>
+                          <div className="text-xs text-muted-foreground truncate leading-tight">
+                            {action.description}
+                          </div>
+                        </div>
+                      </div>
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="max-w-xs">
+                    <p className="font-medium">{action.title}</p>
+                    <p className="text-sm opacity-90">{action.description}</p>
                   </div>
-                </div>
-              </Button>
-            </Link>
-          ))}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
         </div>
       </CardContent>
     </Card>

@@ -1,6 +1,12 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Clock, Globe, FileText, Video, AlertCircle } from "lucide-react"
 import { useRealTime } from "@/components/providers/real-time-provider"
 
@@ -43,27 +49,43 @@ export function RecentActivity() {
               활동 내역이 없습니다.
             </div>
           ) : (
-            data.activities.map((activity) => {
-              const Icon = getIconForType(activity.type)
-              return (
-                <div key={activity.id} className="flex items-start space-x-3">
-                  <div className={`mt-1 ${statusColors[activity.status]}`}>
-                    <Icon className="h-4 w-4" />
+            <TooltipProvider>
+              {data.activities.map((activity) => {
+                const Icon = getIconForType(activity.type)
+                return (
+                  <div key={activity.id} className="flex items-start space-x-3">
+                    <div className={`mt-1 ${statusColors[activity.status]}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="text-sm font-medium text-foreground truncate">
+                            {activity.title}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">{activity.title}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="text-sm text-muted-foreground truncate">
+                            {activity.description}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">{activity.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <div className="text-xs text-muted-foreground/80 mt-1">
+                        {activity.time}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground">
-                      {activity.title}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {activity.description}
-                    </div>
-                    <div className="text-xs text-muted-foreground/80 mt-1">
-                      {activity.time}
-                    </div>
-                  </div>
-                </div>
-              )
-            })
+                )
+              })}
+            </TooltipProvider>
           )}
         </div>
       </CardContent>
