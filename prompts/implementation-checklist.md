@@ -85,28 +85,117 @@
 
 ---
 
-## 🕷️ Phase 4: 웹크롤링 시스템 구현
+## 🕷️ Phase 4: 키워드 기반 뉴스 검색 시스템 구현
 
-### 4.1 크롤링 API 구현
-- [ ] Firecrawl API 클라이언트 구현
+### 4.0 필요한 shadcn UI 컴포넌트 설치
+- [ ] shadcn UI 컴포넌트 설치 (`npx shadcn@latest add @shadcn/input @shadcn/form @shadcn/button @shadcn/card @shadcn/badge @shadcn/dialog @shadcn/table @shadcn/dropdown-menu @shadcn/checkbox`)
+
+### 4.1 키워드 검색 API 구현
+- [ ] 키워드 기반 뉴스 검색 API 클라이언트 구현
+- [ ] Firecrawl API와 네이버/구글 뉴스 검색 API 통합
+- [ ] 검색 쿼리 최적화 및 다중 키워드 처리 로직
 - [ ] 크롤링 작업 큐 시스템 구현
 - [ ] 크롤링 상태 추적 API
 - [ ] 크롤링 결과 저장 API
 - [ ] 에러 처리 및 재시도 로직
 
-### 4.2 크롤링 관리 페이지 구현
-- [ ] 크롤링 대상 URL 설정 인터페이스
-- [ ] 수동 크롤링 실행 버튼
-- [ ] 실시간 크롤링 진행 상태 표시
-- [ ] 크롤링 결과 목록 및 필터링
+### 4.2 키워드 검색 관리 페이지 구현
+- [ ] 키워드 입력 및 검색 설정 인터페이스 (shadcn Input + Form 활용)
+- [ ] 실시간 검색 결과 데이터 테이블 구현 (TanStack React Table + shadcn Table)
+- [ ] 검색 결과 카드 뷰 전환 기능 (shadcn Card 활용)
+- [ ] 고급 필터링 옵션: 날짜 범위, 출처, 카테고리 (shadcn Dropdown Menu)
+- [ ] 검색 기록 및 즐겨찾기 키워드 관리 시스템
+- [ ] 실시간 검색 진행 상태 표시
 - [ ] 크롤링 로그 및 에러 확인 기능
 
-### 4.3 데이터 수집 및 처리
-- [ ] 네이버 뉴스 크롤링 로직 구현
-- [ ] 기사 메타데이터 추출 기능
+### 4.3 키워드 기반 데이터 수집 및 처리
+- [ ] 키워드별 뉴스 검색 로직 구현 (네이버 뉴스 검색 API 활용)
+- [ ] 검색 결과 순위 및 관련도 점수 계산 알고리즘
+- [ ] 키워드 기반 중복 제거 알고리즘 (제목, 내용 유사도 기반)
+- [ ] 기사 메타데이터 추출 기능 (키워드 태깅 포함)
 - [ ] HTML 태그 제거 및 텍스트 정제
-- [ ] 중복 기사 제거 알고리즘
 - [ ] SQLite 데이터베이스 저장 로직
+
+### 4.4 검색 UI/UX 및 사용자 경험
+- [ ] 자동완성 및 검색어 제안 기능 구현
+- [ ] 검색 결과 무한 스크롤 또는 페이지네이션
+- [ ] 뉴스 미리보기 및 상세보기 Modal (shadcn Dialog 활용)
+- [ ] 검색 결과 정렬 옵션 (날짜, 관련도, 출처별)
+- [ ] 키워드 하이라이팅 및 검색어 강조 표시
+- [ ] 검색 통계 및 트렌드 분석 위젯
+
+### 4.5 데이터베이스 스키마 확장
+- [ ] keywords 테이블 생성 (키워드 관리)
+- [ ] search_history 테이블 생성 (검색 기록)
+- [ ] articles 테이블에 relevance_score, keyword_tags, search_rank 컬럼 추가
+- [ ] 키워드 검색 최적화를 위한 인덱스 생성
+
+### 4.6 API 엔드포인트 설계 및 구현
+- [ ] POST /api/search/news (키워드 검색 API)
+- [ ] GET /api/search/history (검색 기록 조회)
+- [ ] POST /api/search/keywords/favorite (즐겨찾기 키워드)
+- [ ] DELETE /api/search/history/{id} (검색 기록 삭제)
+- [ ] GET /api/search/suggestions (검색어 자동완성)
+
+### 4.7 키워드 검색 화면 UI 설계 및 구현
+- [ ] **메인 검색 페이지** (`/admin/search`) 생성
+  - [ ] 상단 검색 바 (shadcn Input + Button)
+    - 키워드 입력 필드 (자동완성 기능)
+    - 검색 버튼 및 고급 검색 토글
+    - 검색 기록 드롭다운 (최근 검색어)
+  - [ ] 고급 검색 옵션 (Collapsible 섹션)
+    - 날짜 범위 선택 (shadcn Calendar + DateRangePicker)
+    - 뉴스 출처 선택 (shadcn Select)
+    - 카테고리 필터 (shadcn Checkbox Group)
+    - 정렬 옵션 (관련도/날짜/출처)
+
+- [ ] **검색 결과 표시 영역**
+  - [ ] 뷰 모드 전환 버튼 (테이블 뷰 ↔ 카드 뷰)
+  - [ ] 검색 결과 통계 (총 개수, 검색 시간)
+  - [ ] 테이블 뷰 구현 (shadcn Table + TanStack React Table)
+    - 제목, 출처, 날짜, 관련도 점수 컬럼
+    - 정렬, 필터링, 페이지네이션 기능
+    - 키워드 하이라이팅
+    - 행 선택 및 일괄 작업 (즐겨찾기, 삭제)
+  - [ ] 카드 뷰 구현 (shadcn Card Grid)
+    - 뉴스 썸네일 이미지 (있는 경우)
+    - 제목, 요약, 출처, 날짜 표시
+    - 관련도 점수 Badge
+    - 카테고리 Tags (shadcn Badge)
+
+- [ ] **뉴스 상세보기 Modal** (shadcn Dialog)
+  - [ ] 전체 기사 내용 표시
+  - [ ] 키워드 하이라이팅
+  - [ ] 원본 링크, 공유 버튼
+  - [ ] 즐겨찾기 토글
+  - [ ] AI 분석 결과 (키워드, 요약, 감정분석)
+
+- [ ] **사이드바 검색 도구**
+  - [ ] 즐겨찾기 키워드 목록 (shadcn Card)
+  - [ ] 인기 검색어 위젯
+  - [ ] 검색 통계 차트 (Recharts)
+  - [ ] 빠른 필터 버튼들
+
+- [ ] **검색 기록 및 관리 페이지** (`/admin/search/history`)
+  - [ ] 검색 기록 테이블 (날짜, 키워드, 결과 수)
+  - [ ] 검색 기록 삭제 및 일괄 삭제
+  - [ ] 자주 사용하는 키워드 통계
+  - [ ] 검색 트렌드 그래프
+
+### 4.8 기존 관리자 네비게이션 업데이트
+- [ ] 사이드바에 "뉴스 검색" 메뉴 항목 추가
+  - [ ] 검색 (`/admin/search`)
+  - [ ] 검색 기록 (`/admin/search/history`)
+  - [ ] 즐겨찾기 (`/admin/search/favorites`)
+- [ ] 대시보드에 최근 검색 결과 위젯 추가
+- [ ] Header에 글로벌 검색 바 추가 (선택사항)
+
+### 4.9 반응형 및 접근성 최적화
+- [ ] 모바일 반응형 레이아웃 (Tailwind responsive classes)
+- [ ] 키보드 네비게이션 지원
+- [ ] 스크린 리더 접근성 (ARIA 레이블)
+- [ ] 다크모드 지원 확인
+- [ ] 로딩 상태 및 스켈레톤 UI (shadcn Skeleton)
 
 ---
 
