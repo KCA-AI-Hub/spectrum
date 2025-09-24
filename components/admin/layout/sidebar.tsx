@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   Home,
+  Search,
 } from "lucide-react"
 
 const navigation = [
@@ -17,6 +18,11 @@ const navigation = [
     name: "대시보드",
     href: "/admin",
     icon: Home,
+  },
+  {
+    name: "뉴스 검색",
+    href: "/admin/search",
+    icon: Search,
   },
   {
     name: "크롤링 관리",

@@ -21,6 +21,28 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
+import {
   Search,
   Plus,
   Edit,
@@ -117,12 +139,119 @@ function getStatusBadge(status: string) {
   }
 }
 
+type Source = {
+  id: number
+  name: string
+  url: string
+  type: string
+  status: string
+  category: string
+  lastCrawl: string
+  itemsCollected: number
+  successRate: number
+  description?: string
+  headers?: string
+  enabled?: boolean
+}
+
 export default function CrawlingSources() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [sourcesList, setSourcesList] = useState<Source[]>(sources)
 
-  const filteredSources = sources.filter(source => {
+  // Add/Edit source dialog state
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [editingSource, setEditingSource] = useState<Source | null>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    url: "",
+    type: "news",
+    category: "",
+    description: "",
+    headers: "",
+    enabled: true
+  })
+
+  // Form handlers
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      url: "",
+      type: "news",
+      category: "",
+      description: "",
+      headers: "",
+      enabled: true
+    })
+    setEditingSource(null)
+  }
+
+  const handleAddSource = () => {
+    setIsAddDialogOpen(true)
+    resetForm()
+  }
+
+  const handleEditSource = (source: Source) => {
+    setEditingSource(source)
+    setFormData({
+      name: source.name,
+      url: source.url,
+      type: source.type,
+      category: source.category,
+      description: source.description || "",
+      headers: source.headers || "",
+      enabled: source.status === "active"
+    })
+    setIsAddDialogOpen(true)
+  }
+
+  const handleSaveSource = () => {
+    if (!formData.name.trim() || !formData.url.trim()) {
+      alert("이름과 URL은 필수입니다.")
+      return
+    }
+
+    const newSource: Source = {
+      id: editingSource ? editingSource.id : Math.max(...sourcesList.map(s => s.id)) + 1,
+      name: formData.name,
+      url: formData.url,
+      type: formData.type,
+      category: formData.category,
+      status: formData.enabled ? "active" : "inactive",
+      lastCrawl: "아직 없음",
+      itemsCollected: 0,
+      successRate: 0,
+      description: formData.description,
+      headers: formData.headers,
+      enabled: formData.enabled
+    }
+
+    if (editingSource) {
+      setSourcesList(prev => prev.map(source =>
+        source.id === editingSource.id ? newSource : source
+      ))
+    } else {
+      setSourcesList(prev => [...prev, newSource])
+    }
+
+    setIsAddDialogOpen(false)
+    resetForm()
+  }
+
+  const handleDeleteSource = (sourceId: number) => {
+    setSourcesList(prev => prev.filter(source => source.id !== sourceId))
+  }
+
+  const handleToggleSource = (sourceId: number) => {
+    setSourcesList(prev => prev.map(source =>
+      source.id === sourceId
+        ? { ...source, status: source.status === "active" ? "inactive" : "active" }
+        : source
+    ))
+  }
+
+  const filteredSources = sourcesList.filter(source => {
     const matchesSearch = source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          source.url.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesType = filterType === "all" || source.type === filterType
@@ -140,7 +269,7 @@ export default function CrawlingSources() {
             크롤링 대상 사이트와 API를 관리합니다
           </p>
         </div>
-        <Button>
+        <Button onClick={handleAddSource}>
           <Plus className="h-4 w-4 mr-2" />
           새 소스 추가
         </Button>
@@ -250,15 +379,43 @@ export default function CrawlingSources() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditSource(source)}
+                        title="편집"
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleToggleSource(source.id)}
+                        title={source.status === "active" ? "비활성화" : "활성화"}
+                      >
                         <Power className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" title="삭제">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>소스 삭제</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              "{source.name}" 소스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>취소</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteSource(source.id)}>
+                              삭제
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -267,6 +424,141 @@ export default function CrawlingSources() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Add/Edit Source Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingSource ? "소스 편집" : "새 소스 추가"}
+            </DialogTitle>
+            <DialogDescription>
+              크롤링할 소스의 정보를 입력하세요. URL과 이름은 필수 항목입니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {/* Basic Information */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                이름 *
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className="col-span-3"
+                placeholder="예: 네이버 뉴스"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="url" className="text-right">
+                URL *
+              </Label>
+              <Input
+                id="url"
+                value={formData.url}
+                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                className="col-span-3"
+                placeholder="https://news.naver.com"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="type" className="text-right">
+                타입
+              </Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="news">뉴스 사이트</SelectItem>
+                  <SelectItem value="rss">RSS 피드</SelectItem>
+                  <SelectItem value="social">소셜 미디어</SelectItem>
+                  <SelectItem value="blog">블로그</SelectItem>
+                  <SelectItem value="forum">포럼</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category" className="text-right">
+                카테고리
+              </Label>
+              <Input
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                className="col-span-3"
+                placeholder="예: 정치, 경제, IT"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="description" className="text-right mt-2">
+                설명
+              </Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                className="col-span-3"
+                placeholder="소스에 대한 설명을 입력하세요"
+                rows={3}
+              />
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="headers" className="text-right mt-2">
+                HTTP 헤더
+              </Label>
+              <div className="col-span-3">
+                <Textarea
+                  id="headers"
+                  value={formData.headers}
+                  onChange={(e) => setFormData(prev => ({ ...prev, headers: e.target.value }))}
+                  placeholder={`User-Agent: Mozilla/5.0...\nAuthorization: Bearer token\nContent-Type: application/json`}
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  JSON 형식으로 입력하거나 key: value 형식으로 각 줄에 입력하세요
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="enabled" className="text-right">
+                활성화
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Switch
+                  id="enabled"
+                  checked={formData.enabled}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
+                />
+                <Label htmlFor="enabled" className="text-sm text-muted-foreground">
+                  {formData.enabled ? "소스가 활성화됩니다" : "소스가 비활성화됩니다"}
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={handleSaveSource}>
+              {editingSource ? "수정" : "추가"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
