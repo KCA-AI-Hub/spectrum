@@ -106,7 +106,7 @@ export async function getCrawlStatus(jobId: string) {
   }
 }
 
-// 키워드 기반 뉴스 검색 (Phase 4.3)
+// 키워드 기반 뉴스 검색 (Phase 4.3) - Using map with search filter
 export async function searchNews(keywords: string[], options?: {
   limit?: number;
   scrapeContent?: boolean;
@@ -115,28 +115,74 @@ export async function searchNews(keywords: string[], options?: {
 }) {
   try {
     const client = getFirecrawlClient();
-    const searchQuery = keywords.join(' OR ');
+    const searchQuery = keywords.join(' ');
 
     console.log(`Searching for news with query: "${searchQuery}"`);
 
-    const searchParams: any = {
-      query: `${searchQuery} news`,
-      limit: options?.limit || 20,
-    };
+    // Use map method to find relevant news sites and then scrape them
+    const newsUrls = [
+      'https://news.google.com',
+      'https://www.bbc.com/news',
+      'https://edition.cnn.com',
+      'https://www.reuters.com',
+      'https://www.nytimes.com'
+    ];
 
-    // Add scrape options if content scraping is enabled
-    if (options?.scrapeContent) {
-      searchParams.scrapeOptions = {
-        formats: ['markdown', 'html'],
-        onlyMainContent: true,
-      };
+    const results = [];
+
+    for (const baseUrl of newsUrls.slice(0, 2)) { // Limit to 2 sources for testing
+      try {
+        console.log(`Mapping URLs from: ${baseUrl}`);
+
+        // Use map to find relevant URLs
+        const mapResult = await client.map(baseUrl, {
+          search: searchQuery,
+          limit: Math.ceil((options?.limit || 10) / 2)
+        });
+
+        if (mapResult && (mapResult as any).links) {
+          const links = (mapResult as any).links.slice(0, 3); // Limit links per source
+
+          for (const link of links) {
+            try {
+              if (options?.scrapeContent) {
+                console.log(`Scraping content from: ${link}`);
+                const scrapeResult = await client.scrape(link, {
+                  formats: ['markdown', 'html'],
+                  onlyMainContent: true
+                });
+
+                if (scrapeResult) {
+                  results.push({
+                    url: link,
+                    title: (scrapeResult as any).metadata?.title || 'Untitled',
+                    content: (scrapeResult as any).markdown || (scrapeResult as any).html || '',
+                    metadata: (scrapeResult as any).metadata || {},
+                    source: baseUrl
+                  });
+                }
+              } else {
+                results.push({
+                  url: link,
+                  title: 'Link found',
+                  content: '',
+                  metadata: {},
+                  source: baseUrl
+                });
+              }
+            } catch (scrapeError) {
+              console.error(`Error scraping ${link}:`, scrapeError);
+            }
+          }
+        }
+      } catch (mapError) {
+        console.error(`Error mapping ${baseUrl}:`, mapError);
+      }
     }
-
-    const response = await client.search(searchParams);
 
     return {
       success: true,
-      data: (response as any).data || response,
+      data: results,
       searchQuery,
       error: null,
     };
@@ -145,7 +191,7 @@ export async function searchNews(keywords: string[], options?: {
     return {
       success: false,
       data: null,
-      searchQuery: keywords.join(' OR '),
+      searchQuery: keywords.join(' '),
       error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
   }
