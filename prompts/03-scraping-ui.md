@@ -35,20 +35,20 @@
   - [x] 카테고리 Tags UI (shadcn Badge)
 
 ### 4A.4 뉴스 소스 관리 페이지 UI 구현
-- [ ] 뉴스 소스 등록/편집 폼 UI (shadcn Input + Form)
-- [ ] 등록된 소스 목록 테이블 UI (TanStack React Table)
-- [ ] 소스 상태 모니터링 위젯 UI (활성/비활성, 상태 표시)
-- [ ] 소스별 설정 관리 UI (빈도, 키워드 필터)
-- [ ] 소스 카테고리 분류 UI (드롭다운, 태그)
+- [x] 뉴스 소스 등록/편집 폼 UI (shadcn Input + Form)
+- [x] 등록된 소스 목록 테이블 UI (TanStack React Table)
+- [x] 소스 상태 모니터링 위젯 UI (활성/비활성, 상태 표시)
+- [x] 소스별 설정 관리 UI (빈도, 키워드 필터)
+- [x] 소스 카테고리 분류 UI (드롭다운, 태그)
 
 ### 4A.5 상세보기 및 모달 UI 구현
-- [ ] 뉴스 상세보기 Modal UI (shadcn Dialog)
-  - [ ] 전체 기사 내용 표시 레이아웃
-  - [ ] 키워드 하이라이팅 UI 스타일
-  - [ ] 원본 링크, 공유 버튼 UI
-  - [ ] 즐겨찾기 토글 버튼 UI
-- [ ] 스크래핑 설정 Modal UI
-- [ ] 확인 다이얼로그 UI (삭제, 수정 등)
+- [x] 뉴스 상세보기 Modal UI (shadcn Dialog)
+  - [x] 전체 기사 내용 표시 레이아웃
+  - [x] 키워드 하이라이팅 UI 스타일
+  - [x] 원본 링크, 공유 버튼 UI
+  - [x] 즐겨찾기 토글 버튼 UI
+- [x] 스크래핑 설정 Modal UI
+- [x] 확인 다이얼로그 UI (삭제, 수정 등)
 
 ### 4A.6 사이드바 및 네비게이션 UI 개선
 - [x] 즐겨찾기 키워드 목록 카드 UI (shadcn Card)
@@ -56,7 +56,7 @@
 - [x] 검색 통계 차트 UI (Recharts)
 - [ ] 사이드바에 "뉴스 스크래핑" 메뉴 항목 UI 추가
   - [x] 스크래핑 (`/admin/scraping`) 메뉴 항목
-  - [ ] 뉴스 소스 관리 (`/admin/scraping/sources`) 메뉴 항목
+  - [x] 뉴스 소스 관리 (`/admin/scraping/sources`) 메뉴 항목
 
 ### 4A.7 관리 페이지 UI 구현
 - [x] 검색 기록 관리 페이지 UI (`/admin/search/history`)
