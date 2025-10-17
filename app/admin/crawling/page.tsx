@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,69 +12,94 @@ import {
   BarChart3,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Search,
+  Loader2
 } from "lucide-react"
 import Link from "next/link"
-
-const crawlingStats = [
-  {
-    label: "활성 소스",
-    value: "156/160",
-    progress: 97.5,
-    status: "good"
-  },
-  {
-    label: "오늘 수집",
-    value: "1,247",
-    progress: 78,
-    status: "normal"
-  },
-  {
-    label: "성공률",
-    value: "94.2%",
-    progress: 94.2,
-    status: "good"
-  },
-  {
-    label: "평균 속도",
-    value: "2.3초",
-    progress: 65,
-    status: "warning"
-  }
-]
-
-const recentCrawls = [
-  {
-    source: "연합뉴스",
-    status: "success",
-    items: 45,
-    duration: "2분 30초",
-    lastRun: "5분 전"
-  },
-  {
-    source: "조선일보",
-    status: "success",
-    items: 38,
-    duration: "1분 45초",
-    lastRun: "10분 전"
-  },
-  {
-    source: "네이버 뉴스",
-    status: "running",
-    items: 0,
-    duration: "진행중",
-    lastRun: "현재"
-  },
-  {
-    source: "트위터 API",
-    status: "error",
-    items: 0,
-    duration: "실패",
-    lastRun: "15분 전"
-  }
-]
+import { useScrapingMetrics } from "@/lib/hooks/use-scraping"
+import type { NewsSource } from "@/lib/types/news-source"
 
 export default function CrawlingManagement() {
+  const [sources, setSources] = useState<NewsSource[]>([])
+  const [sourcesLoading, setSourcesLoading] = useState(true)
+  const { metrics, loading: metricsLoading } = useScrapingMetrics()
+
+  useEffect(() => {
+    fetchSources()
+  }, [])
+
+  const fetchSources = async () => {
+    try {
+      setSourcesLoading(true)
+      const response = await fetch('/api/news-sources')
+      if (!response.ok) throw new Error('Failed to fetch sources')
+
+      const data = await response.json()
+      setSources(data.sources || [])
+    } catch (error) {
+      console.error('Error fetching sources:', error)
+    } finally {
+      setSourcesLoading(false)
+    }
+  }
+
+  const activeSources = sources.filter(s => s.enabled).length
+  const totalSources = sources.length
+  const activeRate = totalSources > 0 ? (activeSources / totalSources) * 100 : 0
+
+  const crawlingStats = [
+    {
+      label: "활성 소스",
+      value: `${activeSources}/${totalSources}`,
+      progress: activeRate,
+      status: activeRate > 90 ? "good" : activeRate > 70 ? "normal" : "warning"
+    },
+    {
+      label: "총 수집 기사",
+      value: (metrics?.totalArticles ?? 0).toLocaleString(),
+      progress: 78,
+      status: "good"
+    },
+    {
+      label: "성공률",
+      value: `${(metrics?.successRate ?? 0).toFixed(1)}%`,
+      progress: metrics?.successRate || 0,
+      status: (metrics?.successRate || 0) > 90 ? "good" : "warning"
+    },
+    {
+      label: "시간당 기사",
+      value: (metrics?.articlesPerHour ?? 0).toFixed(0),
+      progress: 65,
+      status: "normal"
+    }
+  ]
+
+  const recentSources = sources
+    .sort((a, b) => {
+      const aTime = a.lastCrawl ? new Date(a.lastCrawl).getTime() : 0
+      const bTime = b.lastCrawl ? new Date(b.lastCrawl).getTime() : 0
+      return bTime - aTime
+    })
+    .slice(0, 4)
+
+  const formatLastCrawl = (lastCrawl: Date | string | null | undefined): string => {
+    if (!lastCrawl) return "없음"
+
+    const date = typeof lastCrawl === 'string' ? new Date(lastCrawl) : lastCrawl
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return "방금 전"
+    if (diffMins < 60) return `${diffMins}분 전`
+
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}시간 전`
+
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays}일 전`
+  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -82,33 +110,37 @@ export default function CrawlingManagement() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Settings className="h-4 w-4 mr-2" />
-            설정
-          </Button>
-          <Button>
-            <Play className="h-4 w-4 mr-2" />
-            긴급 크롤링
-          </Button>
+          <Link href="/admin/crawling/search">
+            <Button>
+              <Search className="h-4 w-4 mr-2" />
+              키워드 검색
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {crawlingStats.map((stat, index) => (
-          <Card key={index}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">{stat.label}</span>
-                <Badge variant={stat.status === "good" ? "default" : stat.status === "warning" ? "secondary" : "outline"}>
-                  {stat.status === "good" ? "양호" : stat.status === "warning" ? "주의" : "정상"}
-                </Badge>
-              </div>
-              <div className="text-xl font-bold mb-2">{stat.value}</div>
-              <Progress value={stat.progress} className="h-2" />
-            </CardContent>
-          </Card>
-        ))}
+        {metricsLoading || sourcesLoading ? (
+          <div className="col-span-4 flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          crawlingStats.map((stat, index) => (
+            <Card key={index}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">{stat.label}</span>
+                  <Badge variant={stat.status === "good" ? "default" : stat.status === "warning" ? "secondary" : "outline"}>
+                    {stat.status === "good" ? "양호" : stat.status === "warning" ? "주의" : "정상"}
+                  </Badge>
+                </div>
+                <div className="text-xl font-bold mb-2">{stat.value}</div>
+                <Progress value={stat.progress} className="h-2" />
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Quick Navigation */}
@@ -160,34 +192,44 @@ export default function CrawlingManagement() {
           <CardTitle>최근 크롤링 활동</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {recentCrawls.map((crawl, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    {crawl.status === "success" && <CheckCircle className="h-5 w-5 text-chart-2" />}
-                    {crawl.status === "running" && <Play className="h-5 w-5 text-chart-1" />}
-                    {crawl.status === "error" && <XCircle className="h-5 w-5 text-destructive" />}
-                    <span className="font-medium">{crawl.source}</span>
+          {sourcesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : recentSources.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              최근 크롤링 활동이 없습니다
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentSources.map((source) => (
+                <div key={source.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      {source.status === "active" && <CheckCircle className="h-5 w-5 text-chart-2" />}
+                      {source.status === "inactive" && <XCircle className="h-5 w-5 text-muted-foreground" />}
+                      {source.status === "error" && <XCircle className="h-5 w-5 text-destructive" />}
+                      <span className="font-medium">{source.name}</span>
+                    </div>
+                    <Badge variant={
+                      source.status === "active" ? "default" :
+                      source.status === "inactive" ? "secondary" :
+                      "destructive"
+                    }>
+                      {source.status === "active" ? "활성" :
+                       source.status === "inactive" ? "비활성" :
+                       "오류"}
+                    </Badge>
                   </div>
-                  <Badge variant={
-                    crawl.status === "success" ? "default" :
-                    crawl.status === "running" ? "secondary" :
-                    "destructive"
-                  }>
-                    {crawl.status === "success" ? "완료" :
-                     crawl.status === "running" ? "진행중" :
-                     "실패"}
-                  </Badge>
+                  <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                    <span>수집: {source.itemsCollected.toLocaleString()}</span>
+                    <span>성공률: {source.successRate}%</span>
+                    <span>마지막: {formatLastCrawl(source.lastCrawl)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                  <span>아이템: {crawl.items}</span>
-                  <span>소요시간: {crawl.duration}</span>
-                  <span>마지막 실행: {crawl.lastRun}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -2,6 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   FileText,
   Video,
@@ -11,7 +14,12 @@ import {
   Settings,
   TrendingUp,
   Clock,
-  Users
+  Users,
+  Search,
+  Filter,
+  Target,
+  Zap,
+  BarChart3
 } from "lucide-react"
 import Link from "next/link"
 
@@ -48,30 +56,55 @@ const recentContent = [
     type: "summary",
     status: "published",
     views: 1247,
-    createdAt: "2시간 전"
+    createdAt: "2시간 전",
+    analysisStatus: "completed",
+    keywords: ["인공지능", "머신러닝", "딥러닝"],
+    sentiment: "positive"
   },
   {
     title: "블록체인 기술 설명 영상",
     type: "video",
     status: "processing",
     views: 0,
-    createdAt: "30분 전"
+    createdAt: "30분 전",
+    analysisStatus: "processing",
+    keywords: ["블록체인", "암호화폐", "분산원장"],
+    sentiment: "neutral"
   },
   {
     title: "데이터 사이언스 기초 퀴즈",
     type: "quiz",
     status: "draft",
     views: 89,
-    createdAt: "1시간 전"
+    createdAt: "1시간 전",
+    analysisStatus: "pending",
+    keywords: [],
+    sentiment: "neutral"
   },
   {
     title: "클라우드 컴퓨팅 가이드",
     type: "summary",
     status: "published",
     views: 892,
-    createdAt: "3시간 전"
+    createdAt: "3시간 전",
+    analysisStatus: "completed",
+    keywords: ["클라우드", "AWS", "서버리스"],
+    sentiment: "positive"
   }
 ]
+
+const analysisStatusColors = {
+  completed: "bg-green-500",
+  processing: "bg-blue-500", 
+  pending: "bg-gray-500",
+  error: "bg-red-500"
+}
+
+const sentimentColors = {
+  positive: "text-green-600",
+  negative: "text-red-600",
+  neutral: "text-gray-600"
+}
 
 export default function ContentManagement() {
   return (
@@ -87,6 +120,10 @@ export default function ContentManagement() {
           <Button variant="outline">
             <Settings className="h-4 w-4 mr-2" />
             설정
+          </Button>
+          <Button variant="outline">
+            <Brain className="h-4 w-4 mr-2" />
+            AI 분석
           </Button>
           <Button>
             <Plus className="h-4 w-4 mr-2" />
@@ -155,6 +192,68 @@ export default function ContentManagement() {
         </Link>
       </div>
 
+      {/* AI Analysis Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            AI 분석 빠른 실행
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button variant="outline" className="h-20 flex-col gap-2">
+              <Brain className="h-6 w-6" />
+              <span>키워드 추출</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex-col gap-2">
+              <BarChart3 className="h-6 w-6" />
+              <span>감정 분석</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex-col gap-2">
+              <Zap className="h-6 w-6" />
+              <span>주제 분류</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Search and Filter */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="콘텐츠 제목으로 검색..." className="pl-10" />
+              </div>
+            </div>
+            <Select>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="분석 상태" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">모든 상태</SelectItem>
+                <SelectItem value="completed">분석 완료</SelectItem>
+                <SelectItem value="processing">분석 중</SelectItem>
+                <SelectItem value="pending">대기 중</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="콘텐츠 타입" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">모든 타입</SelectItem>
+                <SelectItem value="summary">요약</SelectItem>
+                <SelectItem value="video">동영상</SelectItem>
+                <SelectItem value="quiz">퀴즈</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* AI Processing Status */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -197,32 +296,75 @@ export default function ContentManagement() {
               {recentContent.map((content, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
+                    <Checkbox />
                     <div className="p-2 rounded-lg bg-muted">
                       {content.type === "summary" && <FileText className="h-4 w-4" />}
                       {content.type === "video" && <Video className="h-4 w-4" />}
                       {content.type === "quiz" && <CheckSquare className="h-4 w-4" />}
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium text-sm">{content.title}</div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {content.createdAt}
-                        <Users className="h-3 w-3 ml-2" />
-                        {content.views} 조회
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {content.createdAt}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {content.views} 조회
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${analysisStatusColors[content.analysisStatus as keyof typeof analysisStatusColors]}`} />
+                          <span className={sentimentColors[content.sentiment as keyof typeof sentimentColors]}>
+                            {content.sentiment === "positive" ? "긍정" : content.sentiment === "negative" ? "부정" : "중립"}
+                          </span>
+                        </div>
                       </div>
+                      {content.keywords.length > 0 && (
+                        <div className="flex gap-1 mt-1">
+                          {content.keywords.slice(0, 3).map((keyword, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                          {content.keywords.length > 3 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{content.keywords.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <Badge variant={
-                    content.status === "published" ? "default" :
-                    content.status === "processing" ? "secondary" :
-                    "outline"
-                  }>
-                    {content.status === "published" ? "게시됨" :
-                     content.status === "processing" ? "처리중" :
-                     "초안"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={
+                      content.analysisStatus === "completed" ? "default" :
+                      content.analysisStatus === "processing" ? "secondary" :
+                      content.analysisStatus === "error" ? "destructive" :
+                      "outline"
+                    }>
+                      {content.analysisStatus === "completed" ? "분석완료" :
+                       content.analysisStatus === "processing" ? "분석중" :
+                       content.analysisStatus === "error" ? "오류" :
+                       "대기중"}
+                    </Badge>
+                    <Badge variant={
+                      content.status === "published" ? "default" :
+                      content.status === "processing" ? "secondary" :
+                      "outline"
+                    }>
+                      {content.status === "published" ? "게시됨" :
+                       content.status === "processing" ? "처리중" :
+                       "초안"}
+                    </Badge>
+                  </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <Button variant="outline" className="w-full">
+                일괄 분석 실행
+              </Button>
             </div>
           </CardContent>
         </Card>

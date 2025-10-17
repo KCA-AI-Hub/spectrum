@@ -11,6 +11,9 @@ import {
   Settings,
   Home,
   Search,
+  Brain,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react"
 
 const navigation = [
@@ -33,6 +36,21 @@ const navigation = [
     name: "콘텐츠 관리",
     href: "/admin/content",
     icon: FileText,
+  },
+  {
+    name: "AI 분석",
+    href: "/admin/ai-analysis",
+    icon: Brain,
+  },
+  {
+    name: "분석 결과",
+    href: "/admin/analysis-results",
+    icon: TrendingUp,
+  },
+  {
+    name: "요약 관리",
+    href: "/admin/summaries",
+    icon: Sparkles,
   },
   {
     name: "사용자 관리",

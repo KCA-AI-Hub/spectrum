@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +42,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
 import {
   Search,
   Plus,
@@ -52,66 +53,10 @@ import {
   Rss,
   Twitter,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from "lucide-react"
-
-const sources = [
-  {
-    id: 1,
-    name: "연합뉴스",
-    url: "https://www.yna.co.kr",
-    type: "news",
-    status: "active",
-    category: "정치",
-    lastCrawl: "2분 전",
-    itemsCollected: 1247,
-    successRate: 98.5
-  },
-  {
-    id: 2,
-    name: "조선일보",
-    url: "https://www.chosun.com",
-    type: "news",
-    status: "active",
-    category: "경제",
-    lastCrawl: "5분 전",
-    itemsCollected: 892,
-    successRate: 96.2
-  },
-  {
-    id: 3,
-    name: "네이버 뉴스",
-    url: "https://news.naver.com",
-    type: "rss",
-    status: "active",
-    category: "종합",
-    lastCrawl: "진행중",
-    itemsCollected: 2156,
-    successRate: 94.7
-  },
-  {
-    id: 4,
-    name: "트위터 API",
-    url: "https://api.twitter.com",
-    type: "social",
-    status: "error",
-    category: "소셜미디어",
-    lastCrawl: "15분 전",
-    itemsCollected: 0,
-    successRate: 0
-  },
-  {
-    id: 5,
-    name: "IT 조선",
-    url: "https://it.chosun.com",
-    type: "news",
-    status: "inactive",
-    category: "기술",
-    lastCrawl: "2시간 전",
-    itemsCollected: 456,
-    successRate: 89.3
-  }
-]
+import type { NewsSource, NewsSourceFormData } from "@/lib/types/news-source"
 
 function getTypeIcon(type: string) {
   switch (type) {
@@ -139,31 +84,18 @@ function getStatusBadge(status: string) {
   }
 }
 
-type Source = {
-  id: number
-  name: string
-  url: string
-  type: string
-  status: string
-  category: string
-  lastCrawl: string
-  itemsCollected: number
-  successRate: number
-  description?: string
-  headers?: string
-  enabled?: boolean
-}
-
 export default function CrawlingSources() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
-  const [sourcesList, setSourcesList] = useState<Source[]>(sources)
+  const [sourcesList, setSourcesList] = useState<NewsSource[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   // Add/Edit source dialog state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [editingSource, setEditingSource] = useState<Source | null>(null)
-  const [formData, setFormData] = useState({
+  const [editingSource, setEditingSource] = useState<NewsSource | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [formData, setFormData] = useState<NewsSourceFormData>({
     name: "",
     url: "",
     type: "news",
@@ -172,6 +104,41 @@ export default function CrawlingSources() {
     headers: "",
     enabled: true
   })
+
+  // Fetch sources on mount
+  useEffect(() => {
+    fetchSources()
+  }, [filterType, filterStatus, searchTerm])
+
+  // Poll for real-time status updates every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchSources()
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [filterType, filterStatus, searchTerm])
+
+  const fetchSources = async () => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams()
+      if (filterType !== "all") params.append("type", filterType)
+      if (filterStatus !== "all") params.append("status", filterStatus)
+      if (searchTerm) params.append("search", searchTerm)
+
+      const response = await fetch(`/api/news-sources?${params}`)
+      if (!response.ok) throw new Error("Failed to fetch sources")
+
+      const data = await response.json()
+      setSourcesList(data.sources || [])
+    } catch (error) {
+      console.error("Error fetching sources:", error)
+      toast.error("소스 목록을 불러오는데 실패했습니다")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Form handlers
   const resetForm = () => {
@@ -192,7 +159,7 @@ export default function CrawlingSources() {
     resetForm()
   }
 
-  const handleEditSource = (source: Source) => {
+  const handleEditSource = (source: NewsSource) => {
     setEditingSource(source)
     setFormData({
       name: source.name,
@@ -200,65 +167,164 @@ export default function CrawlingSources() {
       type: source.type,
       category: source.category,
       description: source.description || "",
-      headers: source.headers || "",
-      enabled: source.status === "active"
+      headers: source.headers ? JSON.stringify(source.headers, null, 2) : "",
+      enabled: source.enabled
     })
     setIsAddDialogOpen(true)
   }
 
-  const handleSaveSource = () => {
-    if (!formData.name.trim() || !formData.url.trim()) {
-      alert("이름과 URL은 필수입니다.")
+  const handleSaveSource = async () => {
+    if (!formData.name.trim()) {
+      toast.error("소스 이름을 입력하세요")
       return
     }
 
-    const newSource: Source = {
-      id: editingSource ? editingSource.id : Math.max(...sourcesList.map(s => s.id)) + 1,
-      name: formData.name,
-      url: formData.url,
-      type: formData.type,
-      category: formData.category,
-      status: formData.enabled ? "active" : "inactive",
-      lastCrawl: "아직 없음",
-      itemsCollected: 0,
-      successRate: 0,
-      description: formData.description,
-      headers: formData.headers,
-      enabled: formData.enabled
+    if (!formData.url.trim()) {
+      toast.error("URL을 입력하세요")
+      return
     }
 
-    if (editingSource) {
-      setSourcesList(prev => prev.map(source =>
-        source.id === editingSource.id ? newSource : source
-      ))
-    } else {
-      setSourcesList(prev => [...prev, newSource])
+    // Validate URL format
+    try {
+      new URL(formData.url)
+    } catch {
+      toast.error("올바른 URL 형식을 입력하세요 (예: https://example.com)")
+      return
     }
 
-    setIsAddDialogOpen(false)
-    resetForm()
+    try {
+      setIsSaving(true)
+
+      // Parse headers if provided
+      let headers: Record<string, string> | undefined
+      if (formData.headers?.trim()) {
+        try {
+          headers = JSON.parse(formData.headers)
+        } catch {
+          // Try to parse as key: value format
+          headers = {}
+          const lines = formData.headers.split('\n')
+          for (const line of lines) {
+            const [key, ...values] = line.split(':')
+            if (key && values.length > 0) {
+              headers[key.trim()] = values.join(':').trim()
+            }
+          }
+        }
+      }
+
+      const payload = {
+        name: formData.name,
+        url: formData.url,
+        type: formData.type,
+        category: formData.category || "일반",
+        description: formData.description,
+        headers,
+        enabled: formData.enabled
+      }
+
+      console.log("Saving source with payload:", payload)
+
+      if (editingSource) {
+        // Update existing source
+        const response = await fetch(`/api/news-sources/${editingSource.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+          console.error("Update failed:", errorData)
+          throw new Error(errorData.error || "Failed to update source")
+        }
+
+        toast.success("소스가 수정되었습니다")
+      } else {
+        // Create new source
+        console.log("Creating new source...")
+        const response = await fetch("/api/news-sources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+
+        console.log("Response status:", response.status)
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
+          console.error("Create failed:", errorData)
+          throw new Error(errorData.error || `Failed to create source (HTTP ${response.status})`)
+        }
+
+        const result = await response.json()
+        console.log("Create result:", result)
+
+        toast.success("소스가 추가되었습니다!")
+      }
+
+      setIsAddDialogOpen(false)
+      resetForm()
+      await fetchSources()
+    } catch (error) {
+      console.error("Error saving source:", error)
+      toast.error(error instanceof Error ? error.message : "소스 저장에 실패했습니다")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleDeleteSource = (sourceId: number) => {
-    setSourcesList(prev => prev.filter(source => source.id !== sourceId))
+  const handleDeleteSource = async (sourceId: string) => {
+    try {
+      const response = await fetch(`/api/news-sources/${sourceId}`, {
+        method: "DELETE"
+      })
+
+      if (!response.ok) throw new Error("Failed to delete source")
+
+      toast.success("소스가 삭제되었습니다")
+      await fetchSources()
+    } catch (error) {
+      console.error("Error deleting source:", error)
+      toast.error("소스 삭제에 실패했습니다")
+    }
   }
 
-  const handleToggleSource = (sourceId: number) => {
-    setSourcesList(prev => prev.map(source =>
-      source.id === sourceId
-        ? { ...source, status: source.status === "active" ? "inactive" : "active" }
-        : source
-    ))
+  const handleToggleSource = async (sourceId: string, currentEnabled: boolean) => {
+    try {
+      const response = await fetch(`/api/news-sources/${sourceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: !currentEnabled })
+      })
+
+      if (!response.ok) throw new Error("Failed to toggle source")
+
+      toast.success(currentEnabled ? "소스가 비활성화되었습니다" : "소스가 활성화되었습니다")
+      await fetchSources()
+    } catch (error) {
+      console.error("Error toggling source:", error)
+      toast.error("소스 상태 변경에 실패했습니다")
+    }
   }
 
-  const filteredSources = sourcesList.filter(source => {
-    const matchesSearch = source.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         source.url.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = filterType === "all" || source.type === filterType
-    const matchesStatus = filterStatus === "all" || source.status === filterStatus
+  const formatLastCrawl = (lastCrawl: Date | string | null | undefined): string => {
+    if (!lastCrawl) return "아직 없음"
 
-    return matchesSearch && matchesType && matchesStatus
-  })
+    const date = typeof lastCrawl === 'string' ? new Date(lastCrawl) : lastCrawl
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    if (diffMins < 1) return "방금 전"
+    if (diffMins < 60) return `${diffMins}분 전`
+
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}시간 전`
+
+    const diffDays = Math.floor(diffHours / 24)
+    return `${diffDays}일 전`
+  }
 
   return (
     <div className="space-y-6">
@@ -317,111 +383,121 @@ export default function CrawlingSources() {
       {/* Sources Table */}
       <Card>
         <CardHeader>
-          <CardTitle>크롤링 소스 목록 ({filteredSources.length}개)</CardTitle>
+          <CardTitle>크롤링 소스 목록 ({sourcesList.length}개)</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>소스 정보</TableHead>
-                <TableHead>타입</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>카테고리</TableHead>
-                <TableHead>마지막 크롤링</TableHead>
-                <TableHead>수집 아이템</TableHead>
-                <TableHead>성공률</TableHead>
-                <TableHead>작업</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSources.map((source) => (
-                <TableRow key={source.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{source.name}</div>
-                      <div className="text-sm text-muted-foreground">{source.url}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {getTypeIcon(source.type)}
-                      <span className="capitalize">{source.type}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(source.status)}
-                  </TableCell>
-                  <TableCell>{source.category}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {source.status === "active" && source.lastCrawl === "진행중" ? (
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 bg-chart-1 rounded-full animate-pulse" />
-                          <span className="text-chart-1">진행중</span>
-                        </div>
-                      ) : (
-                        <span>{source.lastCrawl}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{source.itemsCollected.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {source.successRate > 95 ? (
-                        <CheckCircle className="h-4 w-4 text-chart-2" />
-                      ) : source.successRate > 80 ? (
-                        <CheckCircle className="h-4 w-4 text-chart-4" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-destructive" />
-                      )}
-                      <span>{source.successRate}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditSource(source)}
-                        title="편집"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleToggleSource(source.id)}
-                        title={source.status === "active" ? "비활성화" : "활성화"}
-                      >
-                        <Power className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" title="삭제">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>소스 삭제</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              "{source.name}" 소스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>취소</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteSource(source.id)}>
-                              삭제
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : sourcesList.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              등록된 소스가 없습니다
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>소스 정보</TableHead>
+                  <TableHead>타입</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead>카테고리</TableHead>
+                  <TableHead>마지막 크롤링</TableHead>
+                  <TableHead>수집 아이템</TableHead>
+                  <TableHead>성공률</TableHead>
+                  <TableHead>작업</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sourcesList.map((source) => (
+                  <TableRow key={source.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{source.name}</div>
+                        <div className="text-sm text-muted-foreground">{source.url}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getTypeIcon(source.type)}
+                        <span className="capitalize">{source.type}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(source.status)}
+                    </TableCell>
+                    <TableCell>{source.category}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {source.status === "active" && formatLastCrawl(source.lastCrawl) === "방금 전" ? (
+                          <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-chart-1 rounded-full animate-pulse" />
+                            <span className="text-chart-1">진행중</span>
+                          </div>
+                        ) : (
+                          <span>{formatLastCrawl(source.lastCrawl)}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{source.itemsCollected.toLocaleString()}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {source.successRate > 95 ? (
+                          <CheckCircle className="h-4 w-4 text-chart-2" />
+                        ) : source.successRate > 80 ? (
+                          <CheckCircle className="h-4 w-4 text-chart-4" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        )}
+                        <span>{source.successRate}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditSource(source)}
+                          title="편집"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleSource(source.id, source.enabled)}
+                          title={source.enabled ? "비활성화" : "활성화"}
+                        >
+                          <Power className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" title="삭제">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>소스 삭제</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                "{source.name}" 소스를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>취소</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteSource(source.id)}>
+                                삭제
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -547,14 +623,91 @@ export default function CrawlingSources() {
                 </Label>
               </div>
             </div>
+
+            {/* Validation Button */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div />
+              <div className="col-span-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!formData.url || !formData.url.trim()) {
+                      toast.error("URL을 입력하세요")
+                      return
+                    }
+
+                    try {
+                      toast.info("URL 검증 중...")
+
+                      let headers: Record<string, string> | undefined
+                      if (formData.headers?.trim()) {
+                        try {
+                          headers = JSON.parse(formData.headers)
+                        } catch {
+                          headers = {}
+                          const lines = formData.headers.split('\n')
+                          for (const line of lines) {
+                            const [key, ...values] = line.split(':')
+                            if (key && values.length > 0) {
+                              headers[key.trim()] = values.join(':').trim()
+                            }
+                          }
+                        }
+                      }
+
+                      const response = await fetch(`/api/news-sources/${editingSource?.id || 'test'}/validate`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: formData.url, headers })
+                      })
+
+                      if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`)
+                      }
+
+                      const result = await response.json()
+
+                      if (result.valid) {
+                        toast.success(`연결 성공! (응답시간: ${result.responseTime}ms)`)
+                      } else {
+                        toast.error(`연결 실패: ${result.error || '알 수 없는 오류'}`)
+                      }
+                    } catch (error) {
+                      console.error("Validation error:", error)
+                      toast.error(`검증 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
+                    }
+                  }}
+                >
+                  소스 검증
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL에 연결 가능한지 테스트합니다 (선택사항)
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddDialogOpen(false)
+                resetForm()
+              }}
+              disabled={isSaving}
+            >
               취소
             </Button>
-            <Button onClick={handleSaveSource}>
-              {editingSource ? "수정" : "추가"}
+            <Button onClick={handleSaveSource} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  저장중...
+                </>
+              ) : (
+                <>{editingSource ? "수정" : "추가"}</>
+              )}
             </Button>
           </div>
         </DialogContent>

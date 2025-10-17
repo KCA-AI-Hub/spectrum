@@ -13,14 +13,21 @@ datasource db {
 
 // 크롤링 대상 사이트 관리
 model CrawlTarget {
-  id          String   @id @default(cuid())
-  name        String
-  url         String   @unique
-  selector    String?
-  isActive    Boolean  @default(true)
-  crawlJobs   CrawlJob[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String
+  url             String   @unique
+  type            String   @default("news")  // news, rss, social
+  category        String   @default("미분류")
+  description     String?
+  selector        String?
+  headers         String?  // JSON string for custom headers
+  isActive        Boolean  @default(true)
+  itemsCollected  Int      @default(0)
+  successRate     Float    @default(0)
+  lastCrawl       DateTime?
+  crawlJobs       CrawlJob[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // 크롤링 작업 관리
