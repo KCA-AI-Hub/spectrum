@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { usageTracker } from '@/lib/ai/usage-tracker';
 
 // OpenAI 클라이언트 인스턴스
 let openaiClient: OpenAI | null = null;
@@ -19,6 +20,32 @@ export function getOpenAIClient(): OpenAI {
   return openaiClient;
 }
 
+async function logAPIUsage(
+  operation: string,
+  model: string,
+  usage: OpenAI.CompletionUsage | null | undefined,
+  responseTime: number,
+  status: 'success' | 'error',
+  errorMessage?: string
+) {
+  try {
+    if (usage) {
+      await usageTracker.logUsage({
+        operation,
+        model,
+        promptTokens: usage.prompt_tokens || 0,
+        completionTokens: usage.completion_tokens || 0,
+        totalTokens: usage.total_tokens || 0,
+        responseTime,
+        status,
+        errorMessage
+      });
+    }
+  } catch (error) {
+    console.error('Failed to log API usage:', error);
+  }
+}
+
 // 텍스트 요약 생성
 export async function generateSummary(
   content: string,
@@ -28,6 +55,9 @@ export async function generateSummary(
     maxTokens?: number;
   }
 ) {
+  const startTime = Date.now();
+  const model = options?.model || 'gpt-4';
+
   try {
     const client = getOpenAIClient();
 
@@ -42,7 +72,7 @@ export async function generateSummary(
     const prompt = summaryPrompts[options?.type || 'medium'];
 
     const response = await client.chat.completions.create({
-      model: options?.model || 'gpt-4',
+      model,
       messages: [
         {
           role: 'system',
@@ -58,6 +88,9 @@ export async function generateSummary(
     });
 
     const summary = response.choices[0]?.message?.content;
+    const responseTime = (Date.now() - startTime) / 1000;
+
+    await logAPIUsage('summary_generation', model, response.usage, responseTime, 'success');
 
     return {
       success: true,
@@ -66,12 +99,17 @@ export async function generateSummary(
       error: null,
     };
   } catch (error) {
+    const responseTime = (Date.now() - startTime) / 1000;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+    await logAPIUsage('summary_generation', model, null, responseTime, 'error', errorMessage);
+
     console.error('OpenAI summary generation error:', error);
     return {
       success: false,
       summary: null,
       usage: null,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      error: errorMessage,
     };
   }
 }
@@ -167,6 +205,80 @@ export async function analyzeSentiment(
   }
 }
 
+// 주제 분류
+export async function classifyTopic(
+  content: string,
+  options?: {
+    categories?: string[];
+    model?: string;
+  }
+) {
+  try {
+    const client = getOpenAIClient();
+
+    const defaultCategories = [
+      '정치',
+      '경제',
+      '사회',
+      '문화',
+      '과학기술',
+      '스포츠',
+      '국제',
+      '건강',
+      '환경',
+      '교육',
+      '기타'
+    ];
+
+    const categories = options?.categories || defaultCategories;
+
+    const response = await client.chat.completions.create({
+      model: options?.model || 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: '당신은 텍스트의 주제를 분류하는 전문가입니다. 주어진 카테고리 중에서 가장 적합한 주제를 선택하고, 신뢰도를 제공해주세요.',
+        },
+        {
+          role: 'user',
+          content: `다음 텍스트의 주제를 분류해주세요.
+
+카테고리: ${categories.join(', ')}
+
+응답은 다음 JSON 형식으로 작성해주세요:
+{
+  "primaryTopic": "주요 주제",
+  "secondaryTopics": ["부차적 주제1", "부차적 주제2"],
+  "confidence": 0.95,
+  "reasoning": "분류 근거"
+}
+
+텍스트:\n${content}`,
+        },
+      ],
+      max_tokens: 300,
+      temperature: 0.2,
+    });
+
+    const classification = response.choices[0]?.message?.content;
+
+    return {
+      success: true,
+      classification,
+      usage: response.usage,
+      error: null,
+    };
+  } catch (error) {
+    console.error('OpenAI topic classification error:', error);
+    return {
+      success: false,
+      classification: null,
+      usage: null,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
 // 퀴즈 문제 생성
 export async function generateQuiz(
   content: string,
@@ -225,6 +337,121 @@ export async function generateQuiz(
       quiz: null,
       usage: null,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+  }
+}
+
+// 비디오 프롬프트 생성
+export async function generateVideoPrompt(
+  content: string,
+  options?: {
+    style?: string;
+    format?: string;
+    duration?: number;
+    keywords?: string[];
+    tone?: 'professional' | 'casual' | 'energetic' | 'calm' | 'dramatic';
+    targetAudience?: string;
+    customTemplate?: string;
+    model?: string;
+  }
+) {
+  const startTime = Date.now();
+  const model = options?.model || 'gpt-4';
+
+  try {
+    const client = getOpenAIClient();
+
+    const styleDescriptions: Record<string, string> = {
+      MODERN: '현대적이고 세련된 스타일로, 깔끔한 전환 효과와 미니멀한 디자인',
+      MINIMAL: '미니멀하고 간결한 스타일로, 단순하고 우아한 애니메이션',
+      BOLD: '대담하고 생동감 넘치는 스타일로, 강렬한 색상과 역동적인 움직임',
+      ELEGANT: '우아하고 고급스러운 스타일로, 부드러운 전환과 세련된 효과',
+      PLAYFUL: '재미있고 활기찬 스타일로, 다이나믹한 애니메이션과 밝은 분위기'
+    };
+
+    const formatDescriptions: Record<string, string> = {
+      VERTICAL: '세로형 (9:16) - 모바일 최적화, TikTok/Instagram Reels용',
+      HORIZONTAL: '가로형 (16:9) - 데스크톱 및 TV 최적화, YouTube용',
+      SQUARE: '정사각형 (1:1) - 소셜 미디어 피드 최적화'
+    };
+
+    const toneDescriptions: Record<string, string> = {
+      professional: '전문적이고 신뢰감 있는 톤',
+      casual: '편안하고 친근한 톤',
+      energetic: '활기차고 역동적인 톤',
+      calm: '차분하고 안정적인 톤',
+      dramatic: '극적이고 감성적인 톤'
+    };
+
+    const styleDesc = options?.style ? styleDescriptions[options.style] || options.style : '현대적인 스타일';
+    const formatDesc = options?.format ? formatDescriptions[options.format] || options.format : '세로형 모바일 포맷';
+    const toneDesc = options?.tone ? toneDescriptions[options.tone] : '전문적인 톤';
+
+    let systemPrompt = '당신은 Text-to-Video AI를 위한 프롬프트를 작성하는 전문가입니다. 주어진 텍스트 콘텐츠를 시각적으로 매력적인 비디오로 변환하기 위한 상세하고 구체적인 프롬프트를 생성해주세요.';
+
+    let userPrompt = `다음 콘텐츠를 바탕으로 ${options?.duration || 30}초 길이의 숏폼 비디오를 생성하기 위한 프롬프트를 작성해주세요.
+
+비디오 스타일: ${styleDesc}
+비디오 포맷: ${formatDesc}
+영상 톤: ${toneDesc}
+${options?.targetAudience ? `타겟 오디언스: ${options.targetAudience}` : ''}
+${options?.keywords && options.keywords.length > 0 ? `핵심 키워드: ${options.keywords.join(', ')}` : ''}
+
+원본 콘텐츠:
+${content}
+
+프롬프트 작성 지침:
+1. 비디오의 각 장면을 구체적으로 묘사하세요
+2. 시각적 요소 (색상, 조명, 구도)를 명확히 기술하세요
+3. 텍스트 오버레이가 필요한 부분을 표시하세요
+4. 전환 효과와 애니메이션 스타일을 지정하세요
+5. 전체적인 분위기와 느낌을 전달하세요
+
+프롬프트는 명확하고 구체적으로 작성해주세요. Text-to-Video AI가 이해하기 쉽도록 영어로 작성하되, 필요한 경우 한글 텍스트는 그대로 유지해주세요.`;
+
+    if (options?.customTemplate) {
+      userPrompt = options.customTemplate.replace('{{content}}', content);
+    }
+
+    const response = await client.chat.completions.create({
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt,
+        },
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+      max_tokens: 800,
+      temperature: 0.7,
+    });
+
+    const prompt = response.choices[0]?.message?.content;
+    const responseTime = (Date.now() - startTime) / 1000;
+
+    await logAPIUsage('video_prompt_generation', model, response.usage, responseTime, 'success');
+
+    return {
+      success: true,
+      prompt,
+      usage: response.usage,
+      error: null,
+    };
+  } catch (error) {
+    const responseTime = (Date.now() - startTime) / 1000;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+    await logAPIUsage('video_prompt_generation', model, null, responseTime, 'error', errorMessage);
+
+    console.error('OpenAI video prompt generation error:', error);
+    return {
+      success: false,
+      prompt: null,
+      usage: null,
+      error: errorMessage,
     };
   }
 }

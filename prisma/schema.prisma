@@ -98,6 +98,7 @@ model Summary {
   sentiment   String?
   quality     Float?
   version     Int         @default(1)
+  videos      Video[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -110,21 +111,138 @@ enum SummaryType {
   KEYWORDS_ONLY
 }
 
+// AI 분석 작업 관리
+model AIAnalysisJob {
+  id            String         @id @default(cuid())
+  type          AnalysisType
+  status        AnalysisStatus @default(PENDING)
+  articleId     String?
+  inputContent  String
+  result        String?
+  errorMessage  String?
+  priority      Int            @default(0)
+  retryCount    Int            @default(0)
+  maxRetries    Int            @default(3)
+  model         String         @default("gpt-4")
+  tokenUsage    Int?
+  processingTime Float?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum AnalysisType {
+  KEYWORD_EXTRACTION
+  TOPIC_CLASSIFICATION
+  SENTIMENT_ANALYSIS
+  SUMMARY_GENERATION
+  QUIZ_GENERATION
+}
+
+enum AnalysisStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// 키워드 추출 결과
+model KeywordExtraction {
+  id           String    @id @default(cuid())
+  articleId    String?
+  content      String
+  keywords     String
+  model        String    @default("gpt-4")
+  tokenUsage   Int?
+  confidence   Float?
+  createdAt    DateTime  @default(now())
+}
+
+// 주제 분류 결과
+model TopicClassification {
+  id              String    @id @default(cuid())
+  articleId       String?
+  content         String
+  primaryTopic    String
+  secondaryTopics String?
+  confidence      Float?
+  reasoning       String?
+  model           String    @default("gpt-4")
+  tokenUsage      Int?
+  createdAt       DateTime  @default(now())
+}
+
+// 감정 분석 결과
+model SentimentAnalysis {
+  id          String    @id @default(cuid())
+  articleId   String?
+  content     String
+  sentiment   String
+  confidence  Float
+  model       String    @default("gpt-4")
+  tokenUsage  Int?
+  createdAt   DateTime  @default(now())
+}
+
+// AI API 사용량 로그
+model AIUsageLog {
+  id              String    @id @default(cuid())
+  operation       String
+  model           String
+  promptTokens    Int       @default(0)
+  completionTokens Int      @default(0)
+  totalTokens     Int       @default(0)
+  cost            Float?
+  responseTime    Float?
+  status          String
+  errorMessage    String?
+  metadata        String?
+  createdAt       DateTime  @default(now())
+}
+
 // 동영상 생성 관리
 model Video {
-  id            String      @id @default(cuid())
-  articleId     String?
-  article       Article?    @relation(fields: [articleId], references: [id], onDelete: SetNull)
-  title         String
-  description   String?
-  prompt        String
-  filePath      String?
-  duration      Int?
-  status        VideoStatus @default(PENDING)
-  errorMessage  String?
-  metadata      String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id              String         @id @default(cuid())
+  articleId       String?
+  article         Article?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  summaryId       String?
+  summary         Summary?       @relation(fields: [summaryId], references: [id], onDelete: SetNull)
+  title           String
+  description     String?
+  prompt          String
+
+  // 동영상 설정
+  format          VideoFormat    @default(VERTICAL)
+  style           VideoStyle     @default(MODERN)
+  colorPalette    String?
+  resolution      String         @default("1080x1920")
+
+  // 고급 설정 (JSON)
+  textOverlay     String?        // JSON: { enabled, font, size, position, animation }
+  backgroundMusic String?        // JSON: { enabled, track, volume }
+
+  // 동영상 정보
+  filePath        String?
+  thumbnailPath   String?
+  duration        Int?           // seconds
+  segments        Int            @default(1)
+  fileSize        Int?           // bytes
+
+  // 상태 및 통계
+  status          VideoStatus    @default(PENDING)
+  errorMessage    String?
+  processingLogs  VideoProcessingLog[]
+
+  // 통계
+  views           Int            @default(0)
+  downloads       Int            @default(0)
+  shares          Int            @default(0)
+
+  metadata        String?        // Additional JSON metadata
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 enum VideoStatus {
@@ -132,6 +250,82 @@ enum VideoStatus {
   GENERATING
   COMPLETED
   FAILED
+  CANCELLED
+}
+
+enum VideoFormat {
+  VERTICAL      // 9:16 (1080x1920)
+  HORIZONTAL    // 16:9 (1920x1080)
+  SQUARE        // 1:1 (1080x1080)
+}
+
+enum VideoStyle {
+  MODERN
+  MINIMAL
+  BOLD
+  ELEGANT
+  PLAYFUL
+}
+
+// 동영상 템플릿 관리
+model VideoTemplate {
+  id              String      @id @default(cuid())
+  name            String
+  description     String?
+  style           VideoStyle
+  colorPalette    String
+  textOverlay     String      // JSON
+  backgroundMusic String      // JSON
+  thumbnailUrl    String?
+  isActive        Boolean     @default(true)
+  usageCount      Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// 동영상 처리 로그
+model VideoProcessingLog {
+  id          String   @id @default(cuid())
+  videoId     String
+  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  stage       String   // prompt_generation, video_generation, encoding, thumbnail, etc.
+  status      String   // started, completed, failed
+  message     String?
+  duration    Int?     // milliseconds
+  metadata    String?  // JSON
+  createdAt   DateTime @default(now())
+}
+
+// 배경음악 트랙 관리
+model AudioTrack {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  genre       String   @default("General")
+  filePath    String   // Path to audio file in public folder
+  duration    Int?     // Duration in seconds
+  fileSize    Int?     // File size in bytes
+  isActive    Boolean  @default(true)
+  usageCount  Int      @default(0)
+  tags        String?  // JSON array of tags
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 비디오 프롬프트 템플릿 관리
+model VideoPromptTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  category        String   @default("General") // General, Marketing, Educational, Entertainment, etc.
+  systemPrompt    String   // System prompt for AI
+  userPromptTemplate String // User prompt template with variables
+  variables       String   // JSON array of required variables
+  exampleOutput   String?  // Example of expected output
+  isActive        Boolean  @default(true)
+  usageCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // 퀴즈 시스템
@@ -253,4 +447,76 @@ model SystemConfig {
   description String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// 동영상 태그 관리
+model VideoTag {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  color       String?     // Hex color for UI
+  usageCount  Int         @default(0)
+  videos      VideoTagRelation[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// 동영상-태그 관계 (Many-to-Many)
+model VideoTagRelation {
+  id        String    @id @default(cuid())
+  videoId   String
+  tagId     String
+  tag       VideoTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@unique([videoId, tagId])
+}
+
+// 동영상 카테고리
+model VideoCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?  // Icon name or emoji
+  parentId    String?  // For nested categories
+  order       Int      @default(0)
+  videoCount  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 즐겨찾기
+model VideoFavorite {
+  id        String   @id @default(cuid())
+  videoId   String   @unique
+  note      String?  // Optional note for why it's favorited
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 컬렉션 (재생목록)
+model VideoCollection {
+  id          String               @id @default(cuid())
+  name        String
+  description String?
+  thumbnailId String?              // Video ID to use for thumbnail
+  isPublic    Boolean              @default(false)
+  videoCount  Int                  @default(0)
+  videos      VideoCollectionItem[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+// 컬렉션 항목
+model VideoCollectionItem {
+  id           String          @id @default(cuid())
+  collectionId String
+  collection   VideoCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  videoId      String
+  order        Int             @default(0)
+  note         String?
+  addedAt      DateTime        @default(now())
+
+  @@unique([collectionId, videoId])
 }

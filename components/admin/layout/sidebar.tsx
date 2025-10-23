@@ -14,6 +14,7 @@ import {
   Brain,
   Sparkles,
   TrendingUp,
+  Video,
 } from "lucide-react"
 
 const navigation = [
@@ -51,6 +52,11 @@ const navigation = [
     name: "요약 관리",
     href: "/admin/summaries",
     icon: Sparkles,
+  },
+  {
+    name: "동영상 관리",
+    href: "/admin/videos",
+    icon: Video,
   },
   {
     name: "사용자 관리",
