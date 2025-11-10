@@ -31,8 +31,8 @@ const navigation = [
     icon: Search,
   },
   {
-    name: "AI 분석",
-    href: "/admin/ai-analysis",
+    name: "AI 요약 관리",
+    href: "/admin/summaries",
     icon: Brain,
   },
   {
