@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/lib/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 import { videoProcessor } from '@/lib/video/video-processor'
 import { videoFileManager } from '@/lib/video/file-manager'
 import path from 'path'

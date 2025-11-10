@@ -1,155 +1,135 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { NewsSource, NewsSourceListResponse } from '@/lib/types/news-source';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db/prisma';
 
-// GET: List all news sources with optional filtering
-export async function GET(request: NextRequest) {
+// Calculate dynamic status based on source data
+function calculateStatus(source: any): string {
+  if (!source.enabled) {
+    return 'inactive';
+  }
+
+  const now = new Date();
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+  // Check if recently crawled (within last hour)
+  if (source.lastCrawl && new Date(source.lastCrawl) > oneHourAgo) {
+    return 'active';
+  }
+
+  // Check success rate for errors
+  if (source.itemsCollected > 0 && source.successRate < 50) {
+    return 'error';
+  }
+
+  // If never crawled or not recently crawled
+  if (!source.lastCrawl) {
+    return 'pending';
+  }
+
+  return 'inactive';
+}
+
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
-    const status = searchParams.get('status');
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '10');
-
-    // Build where clause
-    const where: any = {};
-
-    if (type && type !== 'all') {
-      where.type = type;
-    }
-
-    if (status && status !== 'all') {
-      if (status === 'active') {
-        where.isActive = true;
-      } else if (status === 'inactive') {
-        where.isActive = false;
-      }
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search } },
-        { url: { contains: search } },
-        { category: { contains: search } },
-      ];
-    }
-
-    // Get total count
-    const total = await prisma.crawlTarget.count({ where });
-
-    // Get paginated results
-    const targets = await prisma.crawlTarget.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { updatedAt: 'desc' },
+    const sources = await prisma.newsSource.findMany({
+      orderBy: [
+        { enabled: 'desc' },
+        { name: 'asc' }
+      ]
     });
 
-    // Transform to NewsSource format
-    const sources: NewsSource[] = targets.map((target) => {
-      const status = !target.isActive
-        ? 'inactive'
-        : target.lastCrawl
-          ? 'active'
-          : 'pending';
+    // Calculate dynamic status for each source
+    const sourcesWithStatus = sources.map(source => ({
+      ...source,
+      status: calculateStatus(source)
+    }));
 
-      return {
-        id: target.id,
-        name: target.name,
-        url: target.url,
-        type: target.type,
-        category: target.category,
-        description: target.description || undefined,
-        headers: target.headers ? JSON.parse(target.headers) : undefined,
-        enabled: target.isActive,
-        status,
-        lastCrawl: target.lastCrawl?.toISOString() || null,
-        itemsCollected: target.itemsCollected,
-        successRate: target.successRate,
-        createdAt: target.createdAt.toISOString(),
-        updatedAt: target.updatedAt.toISOString(),
-      };
-    });
-
-    const response: NewsSourceListResponse = {
-      sources,
-      total,
-      page,
-      pageSize,
-    };
-
-    return NextResponse.json(response);
+    return NextResponse.json({ sources: sourcesWithStatus });
   } catch (error) {
-    console.error('Error fetching news sources:', error);
+    console.error('News sources GET error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch news sources' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch sources' },
       { status: 500 }
     );
   }
 }
 
-// POST: Create a new news source
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { name, url, type, category, description, headers, enabled } = body;
+    const data = await request.json();
 
-    // Validation
-    if (!name || !url || !type) {
+    const source = await prisma.newsSource.create({
+      data: {
+        name: data.name,
+        url: data.url,
+        type: data.type || 'news',
+        category: data.category || '일반',
+        description: data.description,
+        headers: data.headers ? JSON.stringify(data.headers) : null,
+        enabled: data.enabled ?? true
+      }
+    });
+
+    return NextResponse.json({ source });
+  } catch (error) {
+    console.error('News sources POST error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to create source' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const data = await request.json();
+    const { id, ...updateData } = data;
+
+    if (!id) {
       return NextResponse.json(
-        { error: 'Name, URL, and type are required' },
+        { error: 'Source ID is required' },
         { status: 400 }
       );
     }
 
-    // Check if URL already exists
-    const existingSource = await prisma.crawlTarget.findUnique({
-      where: { url },
+    const source = await prisma.newsSource.update({
+      where: { id },
+      data: {
+        ...updateData,
+        headers: updateData.headers ? JSON.stringify(updateData.headers) : undefined
+      }
     });
 
-    if (existingSource) {
+    return NextResponse.json({ source });
+  } catch (error) {
+    console.error('News sources PATCH error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to update source' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
       return NextResponse.json(
-        { error: 'A source with this URL already exists' },
-        { status: 409 }
+        { error: 'Source ID is required' },
+        { status: 400 }
       );
     }
 
-    // Create new source
-    const target = await prisma.crawlTarget.create({
-      data: {
-        name,
-        url,
-        type,
-        category: category || '미분류',
-        description,
-        headers: headers ? JSON.stringify(headers) : null,
-        isActive: enabled !== undefined ? enabled : true,
-      },
+    await prisma.newsSource.delete({
+      where: { id }
     });
 
-    const newSource: NewsSource = {
-      id: target.id,
-      name: target.name,
-      url: target.url,
-      type: target.type,
-      category: target.category,
-      description: target.description || undefined,
-      headers: target.headers ? JSON.parse(target.headers) : undefined,
-      enabled: target.isActive,
-      status: target.isActive ? 'pending' : 'inactive',
-      lastCrawl: null,
-      itemsCollected: 0,
-      successRate: 0,
-      createdAt: target.createdAt.toISOString(),
-      updatedAt: target.updatedAt.toISOString(),
-    };
-
-    return NextResponse.json(newSource, { status: 201 });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error creating news source:', error);
+    console.error('News sources DELETE error:', error);
     return NextResponse.json(
-      { error: 'Failed to create news source' },
+      { error: error instanceof Error ? error.message : 'Failed to delete source' },
       { status: 500 }
     );
   }

@@ -3,7 +3,7 @@
  * Handles data backup, recovery, and system resilience
  */
 
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';

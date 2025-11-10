@@ -3,7 +3,7 @@
  * Coordinates all data processing, storage, and quality verification operations
  */
 
-import { PrismaClient, CrawlJob, CrawlStatus } from '../generated/prisma';
+import { PrismaClient, CrawlJob, CrawlStatus } from '@prisma/client';
 import { DataProcessingService, type ScrapedContentData, type ProcessingStats } from './data-processing';
 import { BackupRecoveryService } from './backup-recovery';
 import { searchNews } from '../api/firecrawl';

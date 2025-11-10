@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSummary } from '@/lib/api/openai';
 import { cleanHtmlText } from '@/lib/utils/content-processing';
-import { PrismaClient } from '@/lib/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 

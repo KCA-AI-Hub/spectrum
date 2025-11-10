@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/lib/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 import { audioFileManager } from '@/lib/audio/audio-file-manager'
 
 const prisma = new PrismaClient()

@@ -3,7 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -11,411 +10,189 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 크롤링 대상 사이트 관리
-model CrawlTarget {
-  id              String   @id @default(cuid())
-  name            String
-  url             String   @unique
-  type            String   @default("news")  // news, rss, social
-  category        String   @default("미분류")
-  description     String?
-  selector        String?
-  headers         String?  // JSON string for custom headers
-  isActive        Boolean  @default(true)
-  itemsCollected  Int      @default(0)
-  successRate     Float    @default(0)
-  lastCrawl       DateTime?
-  crawlJobs       CrawlJob[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+// ============================================
+// 핵심 워크플로우: 키워드 → 스크래핑 → 요약 → 영상 생성
+// ============================================
+
+// 뉴스 소스 관리 (크롤링 대상)
+model NewsSource {
+  id             String    @id @default(cuid())
+  name           String
+  url            String    @unique
+  type           String    @default("news")  // news, rss, social, blog
+  category       String    @default("일반")
+  description    String?
+  headers        String?   // JSON string for custom headers
+  enabled        Boolean   @default(true)
+  status         String    @default("inactive") // active, inactive, error, pending
+  itemsCollected Int       @default(0)
+  successRate    Float     @default(0)
+  lastCrawl      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
-// 크롤링 작업 관리
-model CrawlJob {
-  id            String      @id @default(cuid())
-  targetId      String
-  target        CrawlTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  status        CrawlStatus @default(PENDING)
-  startedAt     DateTime?
-  completedAt   DateTime?
-  errorMessage  String?
-  totalItems    Int         @default(0)
-  processedItems Int        @default(0)
-  articles      Article[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-}
-
-enum CrawlStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-// 수집된 기사 데이터
+// 수집된 기사
 model Article {
-  id              String      @id @default(cuid())
-  crawlJobId      String
-  crawlJob        CrawlJob    @relation(fields: [crawlJobId], references: [id], onDelete: Cascade)
-  title           String
-  content         String
-  url             String      @unique
-  author          String?
-  publishedAt     DateTime?
-  extractedAt     DateTime    @default(now())
-  imageUrl        String?
-  tags            String?
-  status          ArticleStatus @default(RAW)
-  relevanceScore  Float?      // 키워드 관련도 점수
-  keywordTags     String?     // 키워드 태그 (JSON 또는 comma-separated)
-  searchRank      Int?        // 검색 결과 순위
-  summaries       Summary[]
-  videos          Video[]
-  quizzes         Quiz[]
-  searchResults   SearchResult[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id             String        @id @default(cuid())
+  title          String
+  content        String
+  url            String        @unique
+  author         String?
+  publishedAt    DateTime?
+  extractedAt    DateTime      @default(now())
+  imageUrl       String?
+  sourceName     String        // 출처 이름
+  sourceUrl      String        // 출처 URL
+  relevanceScore Float?        // 키워드 관련도 점수 (0-100)
+  keywordMatches String?       // JSON array: 매칭된 키워드들
+  status         ArticleStatus @default(RAW)
+  summaries      Summary[]
+  videos         Video[]
+  searchResults  SearchResult[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 enum ArticleStatus {
-  RAW
-  PROCESSED
-  ANALYZED
-  SUMMARIZED
-  FAILED
+  RAW           // 원본 수집 상태
+  PROCESSED     // 텍스트 정제 완료
+  SUMMARIZED    // 요약 생성 완료
+  FAILED        // 처리 실패
 }
 
 // AI 생성 요약
 model Summary {
-  id          String      @id @default(cuid())
-  articleId   String
-  article     Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  type        SummaryType
-  content     String
-  keywords    String?
-  sentiment   String?
-  quality     Float?
-  version     Int         @default(1)
-  videos      Video[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id        String      @id @default(cuid())
+  articleId String
+  article   Article     @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  type      SummaryType @default(SHORT)
+  content   String      // 요약 내용
+  keywords  String?     // JSON array: 추출된 키워드
+  sentiment String?     // positive, neutral, negative
+  model     String      @default("gpt-4") // 사용한 AI 모델
+  tokenUsage Int?       // 사용한 토큰 수
+  videos    Video[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 enum SummaryType {
-  SHORT
-  MEDIUM
-  LONG
-  BULLET_POINTS
-  KEYWORDS_ONLY
+  SHORT         // 짧은 요약
+  MEDIUM        // 중간 요약
+  LONG          // 긴 요약
+  BULLET_POINTS // 불릿 포인트
 }
 
-// AI 분석 작업 관리
-model AIAnalysisJob {
-  id            String         @id @default(cuid())
-  type          AnalysisType
-  status        AnalysisStatus @default(PENDING)
-  articleId     String?
-  inputContent  String
-  result        String?
-  errorMessage  String?
-  priority      Int            @default(0)
-  retryCount    Int            @default(0)
-  maxRetries    Int            @default(3)
-  model         String         @default("gpt-4")
-  tokenUsage    Int?
-  processingTime Float?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-}
-
-enum AnalysisType {
-  KEYWORD_EXTRACTION
-  TOPIC_CLASSIFICATION
-  SENTIMENT_ANALYSIS
-  SUMMARY_GENERATION
-  QUIZ_GENERATION
-}
-
-enum AnalysisStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-// 키워드 추출 결과
-model KeywordExtraction {
-  id           String    @id @default(cuid())
-  articleId    String?
-  content      String
-  keywords     String
-  model        String    @default("gpt-4")
-  tokenUsage   Int?
-  confidence   Float?
-  createdAt    DateTime  @default(now())
-}
-
-// 주제 분류 결과
-model TopicClassification {
-  id              String    @id @default(cuid())
-  articleId       String?
-  content         String
-  primaryTopic    String
-  secondaryTopics String?
-  confidence      Float?
-  reasoning       String?
-  model           String    @default("gpt-4")
-  tokenUsage      Int?
-  createdAt       DateTime  @default(now())
-}
-
-// 감정 분석 결과
-model SentimentAnalysis {
-  id          String    @id @default(cuid())
-  articleId   String?
-  content     String
-  sentiment   String
-  confidence  Float
-  model       String    @default("gpt-4")
-  tokenUsage  Int?
-  createdAt   DateTime  @default(now())
-}
-
-// AI API 사용량 로그
-model AIUsageLog {
-  id              String    @id @default(cuid())
-  operation       String
-  model           String
-  promptTokens    Int       @default(0)
-  completionTokens Int      @default(0)
-  totalTokens     Int       @default(0)
-  cost            Float?
-  responseTime    Float?
-  status          String
-  errorMessage    String?
-  metadata        String?
-  createdAt       DateTime  @default(now())
-}
-
-// 동영상 생성 관리
+// 동영상 생성
 model Video {
-  id              String         @id @default(cuid())
-  articleId       String?
-  article         Article?       @relation(fields: [articleId], references: [id], onDelete: SetNull)
-  summaryId       String?
-  summary         Summary?       @relation(fields: [summaryId], references: [id], onDelete: SetNull)
-  title           String
-  description     String?
-  prompt          String
+  id          String      @id @default(cuid())
+  articleId   String?
+  article     Article?    @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  summaryId   String?
+  summary     Summary?    @relation(fields: [summaryId], references: [id], onDelete: SetNull)
+  title       String
+  description String?
+  prompt      String      // 영상 생성 프롬프트
 
-  // 동영상 설정
-  format          VideoFormat    @default(VERTICAL)
-  style           VideoStyle     @default(MODERN)
-  colorPalette    String?
-  resolution      String         @default("1080x1920")
+  // 영상 설정
+  format      VideoFormat @default(VERTICAL)
+  duration    Int         @default(60) // 초 단위
+  resolution  String      @default("1080x1920")
 
-  // 고급 설정 (JSON)
-  textOverlay     String?        // JSON: { enabled, font, size, position, animation }
-  backgroundMusic String?        // JSON: { enabled, track, volume }
+  // 파일 정보
+  filePath      String?   // 영상 파일 경로
+  thumbnailPath String?   // 썸네일 경로
+  fileSize      Int?      // 바이트 단위
 
-  // 동영상 정보
-  filePath        String?
-  thumbnailPath   String?
-  duration        Int?           // seconds
-  segments        Int            @default(1)
-  fileSize        Int?           // bytes
-
-  // 상태 및 통계
-  status          VideoStatus    @default(PENDING)
-  errorMessage    String?
-  processingLogs  VideoProcessingLog[]
+  // 상태
+  status       VideoStatus @default(PENDING)
+  errorMessage String?
+  progress     Int         @default(0) // 0-100
 
   // 통계
-  views           Int            @default(0)
-  downloads       Int            @default(0)
-  shares          Int            @default(0)
+  views     Int @default(0)
+  downloads Int @default(0)
 
-  metadata        String?        // Additional JSON metadata
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  // 처리 로그
+  processingLogs VideoProcessingLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum VideoStatus {
-  PENDING
-  GENERATING
-  COMPLETED
-  FAILED
-  CANCELLED
+  PENDING      // 대기 중
+  SCRAPING     // 스크래핑 중
+  SUMMARIZING  // 요약 생성 중
+  PROMPTING    // 프롬프트 생성 중
+  GENERATING   // 영상 생성 중
+  COMPLETED    // 완료
+  FAILED       // 실패
 }
 
 enum VideoFormat {
-  VERTICAL      // 9:16 (1080x1920)
-  HORIZONTAL    // 16:9 (1920x1080)
-  SQUARE        // 1:1 (1080x1080)
+  VERTICAL   // 9:16 (1080x1920) - 세로
+  HORIZONTAL // 16:9 (1920x1080) - 가로
+  SQUARE     // 1:1 (1080x1080) - 정사각형
 }
 
-enum VideoStyle {
-  MODERN
-  MINIMAL
-  BOLD
-  ELEGANT
-  PLAYFUL
-}
-
-// 동영상 템플릿 관리
+// 동영상 템플릿
 model VideoTemplate {
-  id              String      @id @default(cuid())
-  name            String
-  description     String?
-  style           VideoStyle
-  colorPalette    String
-  textOverlay     String      // JSON
-  backgroundMusic String      // JSON
-  thumbnailUrl    String?
-  isActive        Boolean     @default(true)
-  usageCount      Int         @default(0)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  format       VideoFormat
+  prompt       String   // 기본 프롬프트 템플릿
+  thumbnailUrl String?
+  isActive     Boolean  @default(true)
+  usageCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // 동영상 처리 로그
 model VideoProcessingLog {
-  id          String   @id @default(cuid())
-  videoId     String
-  video       Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  stage       String   // prompt_generation, video_generation, encoding, thumbnail, etc.
-  status      String   // started, completed, failed
-  message     String?
-  duration    Int?     // milliseconds
-  metadata    String?  // JSON
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  stage     String   // scraping, summarizing, prompting, generating, completed
+  status    String   // started, completed, failed
+  message   String?
+  duration  Int?     // 밀리초
+  createdAt DateTime @default(now())
 }
 
-// 배경음악 트랙 관리
-model AudioTrack {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  genre       String   @default("General")
-  filePath    String   // Path to audio file in public folder
-  duration    Int?     // Duration in seconds
-  fileSize    Int?     // File size in bytes
-  isActive    Boolean  @default(true)
-  usageCount  Int      @default(0)
-  tags        String?  // JSON array of tags
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// 비디오 프롬프트 템플릿 관리
-model VideoPromptTemplate {
-  id              String   @id @default(cuid())
-  name            String
-  description     String?
-  category        String   @default("General") // General, Marketing, Educational, Entertainment, etc.
-  systemPrompt    String   // System prompt for AI
-  userPromptTemplate String // User prompt template with variables
-  variables       String   // JSON array of required variables
-  exampleOutput   String?  // Example of expected output
-  isActive        Boolean  @default(true)
-  usageCount      Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-}
-
-// 퀴즈 시스템
-model Quiz {
-  id          String        @id @default(cuid())
-  articleId   String?
-  article     Article?      @relation(fields: [articleId], references: [id], onDelete: SetNull)
-  title       String
-  description String?
-  questions   Question[]
-  attempts    QuizAttempt[]
-  isPublic    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-}
-
-model Question {
-  id            String       @id @default(cuid())
-  quizId        String
-  quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  type          QuestionType
-  question      String
-  options       String?
-  correctAnswer String
-  explanation   String?
-  points        Int          @default(1)
-  order         Int
-  answers       Answer[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-}
-
-enum QuestionType {
-  MULTIPLE_CHOICE
-  TRUE_FALSE
-  FILL_BLANK
-  SHORT_ANSWER
-}
-
-model QuizAttempt {
-  id          String   @id @default(cuid())
-  quizId      String
-  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  userName    String?
-  score       Int      @default(0)
-  totalPoints Int      @default(0)
-  startedAt   DateTime @default(now())
-  completedAt DateTime?
-  answers     Answer[]
-}
-
-model Answer {
-  id            String      @id @default(cuid())
-  attemptId     String
-  attempt       QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId    String
-  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  userAnswer    String
-  isCorrect     Boolean
-  points        Int         @default(0)
-  answeredAt    DateTime    @default(now())
-}
+// ============================================
+// 검색 및 키워드 관리
+// ============================================
 
 // 키워드 관리
 model Keyword {
-  id            String    @id @default(cuid())
-  keyword       String    @unique
+  id            String          @id @default(cuid())
+  keyword       String          @unique
   description   String?
   category      String?
-  isFavorite    Boolean   @default(false)
-  useCount      Int       @default(0)
-  tags          String?   // JSON 또는 comma-separated
+  isFavorite    Boolean         @default(false)
+  useCount      Int             @default(0)
   searchHistory SearchHistory[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
 // 검색 기록
 model SearchHistory {
-  id           String    @id @default(cuid())
-  keywordId    String?
-  keyword      Keyword?  @relation(fields: [keywordId], references: [id], onDelete: SetNull)
-  searchQuery  String
-  resultCount  Int       @default(0)
-  searchTime   Float?    // 검색 소요 시간 (초)
-  filters      String?   // 사용된 필터 (JSON)
-  status       SearchStatus @default(COMPLETED)
-  errorMessage String?
+  id            String         @id @default(cuid())
+  keywordId     String?
+  keyword       Keyword?       @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+  searchQuery   String         // 검색어
+  resultCount   Int            @default(0)
+  searchTime    Float?         // 검색 소요 시간 (초)
+  filters       String?        // JSON: 사용된 필터
+  status        SearchStatus   @default(COMPLETED)
+  errorMessage  String?
   searchResults SearchResult[]
-  createdAt    DateTime  @default(now())
+  createdAt     DateTime       @default(now())
 }
 
 enum SearchStatus {
@@ -425,7 +202,7 @@ enum SearchStatus {
   FAILED
 }
 
-// 검색 결과와 기사의 연결
+// 검색 결과 (검색과 기사의 연결)
 model SearchResult {
   id              String        @id @default(cuid())
   searchHistoryId String
@@ -433,90 +210,58 @@ model SearchResult {
   articleId       String
   article         Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
   relevanceScore  Float         @default(0)
-  searchRank      Int
+  searchRank      Int           // 검색 결과 순위
   createdAt       DateTime      @default(now())
 
   @@unique([searchHistoryId, articleId])
 }
 
-// 시스템 설정
-model SystemConfig {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
-  description String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================
+// AI 사용량 추적
+// ============================================
+
+// AI API 사용량 로그
+model AIUsageLog {
+  id               String   @id @default(cuid())
+  operation        String   // summary, keyword_extraction, video_prompt
+  model            String   // gpt-4, gpt-3.5-turbo
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  cost             Float?   // 예상 비용 (USD)
+  responseTime     Float?   // 응답 시간 (초)
+  status           String   // success, error
+  errorMessage     String?
+  createdAt        DateTime @default(now())
 }
 
-// 동영상 태그 관리
-model VideoTag {
-  id          String      @id @default(cuid())
-  name        String      @unique
-  description String?
-  color       String?     // Hex color for UI
-  usageCount  Int         @default(0)
-  videos      VideoTagRelation[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+// ============================================
+// 워크플로우 관리
+// ============================================
+
+// 워크플로우 작업 (키워드 → 영상 생성까지의 전체 프로세스)
+model Workflow {
+  id           String         @id @default(cuid())
+  keywords     String         // JSON array
+  articleId    String?        // 선택된 기사 ID
+  summaryId    String?        // 생성된 요약 ID
+  videoId      String?        // 생성된 영상 ID
+  status       WorkflowStatus @default(PENDING)
+  currentStep  String?        // 현재 진행 단계
+  progress     Int            @default(0) // 0-100
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 }
 
-// 동영상-태그 관계 (Many-to-Many)
-model VideoTagRelation {
-  id        String    @id @default(cuid())
-  videoId   String
-  tagId     String
-  tag       VideoTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-
-  @@unique([videoId, tagId])
-}
-
-// 동영상 카테고리
-model VideoCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  icon        String?  // Icon name or emoji
-  parentId    String?  // For nested categories
-  order       Int      @default(0)
-  videoCount  Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-// 즐겨찾기
-model VideoFavorite {
-  id        String   @id @default(cuid())
-  videoId   String   @unique
-  note      String?  // Optional note for why it's favorited
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// 컬렉션 (재생목록)
-model VideoCollection {
-  id          String               @id @default(cuid())
-  name        String
-  description String?
-  thumbnailId String?              // Video ID to use for thumbnail
-  isPublic    Boolean              @default(false)
-  videoCount  Int                  @default(0)
-  videos      VideoCollectionItem[]
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-}
-
-// 컬렉션 항목
-model VideoCollectionItem {
-  id           String          @id @default(cuid())
-  collectionId String
-  collection   VideoCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  videoId      String
-  order        Int             @default(0)
-  note         String?
-  addedAt      DateTime        @default(now())
-
-  @@unique([collectionId, videoId])
+enum WorkflowStatus {
+  PENDING      // 대기 중
+  SCRAPING     // 스크래핑 중
+  SUMMARIZING  // 요약 중
+  PROMPTING    // 프롬프트 생성 중
+  GENERATING   // 영상 생성 중
+  COMPLETED    // 완료
+  FAILED       // 실패
 }

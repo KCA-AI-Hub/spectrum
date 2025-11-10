@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/lib/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 import Firecrawl from '@mendable/firecrawl-js'
 import { searchNews, batchScrapeUrls } from '@/lib/api/firecrawl'
 import {

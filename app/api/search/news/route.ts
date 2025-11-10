@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/lib/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 import CrawlQueue from '@/lib/crawl-queue'
 
 const prisma = new PrismaClient()

@@ -26,7 +26,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -44,7 +43,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import {
-  Search,
   Plus,
   Edit,
   Trash2,
@@ -84,14 +82,10 @@ function getStatusBadge(status: string) {
   }
 }
 
-export default function CrawlingSources() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterType, setFilterType] = useState("all")
-  const [filterStatus, setFilterStatus] = useState("all")
+export function SourcesManagementTab() {
   const [sourcesList, setSourcesList] = useState<NewsSource[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Add/Edit source dialog state
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingSource, setEditingSource] = useState<NewsSource | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -105,29 +99,22 @@ export default function CrawlingSources() {
     enabled: true
   })
 
-  // Fetch sources on mount
   useEffect(() => {
     fetchSources()
-  }, [filterType, filterStatus, searchTerm])
+  }, [])
 
-  // Poll for real-time status updates every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       fetchSources()
     }, 30000)
 
     return () => clearInterval(interval)
-  }, [filterType, filterStatus, searchTerm])
+  }, [])
 
   const fetchSources = async () => {
     try {
       setIsLoading(true)
-      const params = new URLSearchParams()
-      if (filterType !== "all") params.append("type", filterType)
-      if (filterStatus !== "all") params.append("status", filterStatus)
-      if (searchTerm) params.append("search", searchTerm)
-
-      const response = await fetch(`/api/news-sources?${params}`)
+      const response = await fetch('/api/news-sources')
       if (!response.ok) throw new Error("Failed to fetch sources")
 
       const data = await response.json()
@@ -140,7 +127,6 @@ export default function CrawlingSources() {
     }
   }
 
-  // Form handlers
   const resetForm = () => {
     setFormData({
       name: "",
@@ -184,7 +170,6 @@ export default function CrawlingSources() {
       return
     }
 
-    // Validate URL format
     try {
       new URL(formData.url)
     } catch {
@@ -195,13 +180,11 @@ export default function CrawlingSources() {
     try {
       setIsSaving(true)
 
-      // Parse headers if provided
       let headers: Record<string, string> | undefined
       if (formData.headers?.trim()) {
         try {
           headers = JSON.parse(formData.headers)
         } catch {
-          // Try to parse as key: value format
           headers = {}
           const lines = formData.headers.split('\n')
           for (const line of lines) {
@@ -223,10 +206,7 @@ export default function CrawlingSources() {
         enabled: formData.enabled
       }
 
-      console.log("Saving source with payload:", payload)
-
       if (editingSource) {
-        // Update existing source
         const response = await fetch(`/api/news-sources/${editingSource.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -235,30 +215,21 @@ export default function CrawlingSources() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-          console.error("Update failed:", errorData)
           throw new Error(errorData.error || "Failed to update source")
         }
 
         toast.success("소스가 수정되었습니다")
       } else {
-        // Create new source
-        console.log("Creating new source...")
         const response = await fetch("/api/news-sources", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         })
 
-        console.log("Response status:", response.status)
-
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: "Unknown error" }))
-          console.error("Create failed:", errorData)
           throw new Error(errorData.error || `Failed to create source (HTTP ${response.status})`)
         }
-
-        const result = await response.json()
-        console.log("Create result:", result)
 
         toast.success("소스가 추가되었습니다!")
       }
@@ -327,60 +298,14 @@ export default function CrawlingSources() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">크롤링 소스 관리</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            크롤링 대상 사이트와 API를 관리합니다
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <Button onClick={handleAddSource}>
           <Plus className="h-4 w-4 mr-2" />
           새 소스 추가
         </Button>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="소스 이름 또는 URL 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="타입 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">모든 타입</SelectItem>
-                <SelectItem value="news">뉴스 사이트</SelectItem>
-                <SelectItem value="rss">RSS 피드</SelectItem>
-                <SelectItem value="social">소셜 미디어</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="상태 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">모든 상태</SelectItem>
-                <SelectItem value="active">활성</SelectItem>
-                <SelectItem value="inactive">비활성</SelectItem>
-                <SelectItem value="error">오류</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Sources Table */}
       <Card>
         <CardHeader>
           <CardTitle>크롤링 소스 목록 ({sourcesList.length}개)</CardTitle>
@@ -501,7 +426,6 @@ export default function CrawlingSources() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Source Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -514,7 +438,6 @@ export default function CrawlingSources() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Basic Information */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 이름 *
@@ -589,7 +512,6 @@ export default function CrawlingSources() {
               />
             </div>
 
-            {/* Advanced Settings */}
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="headers" className="text-right mt-2">
                 HTTP 헤더
@@ -599,11 +521,11 @@ export default function CrawlingSources() {
                   id="headers"
                   value={formData.headers}
                   onChange={(e) => setFormData(prev => ({ ...prev, headers: e.target.value }))}
-                  placeholder={`User-Agent: Mozilla/5.0...\nAuthorization: Bearer token\nContent-Type: application/json`}
+                  placeholder={`User-Agent: Mozilla/5.0...\nAuthorization: Bearer token`}
                   rows={4}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  JSON 형식으로 입력하거나 key: value 형식으로 각 줄에 입력하세요
+                  JSON 형식 또는 key: value 형식으로 입력하세요
                 </p>
               </div>
             </div>
@@ -621,69 +543,6 @@ export default function CrawlingSources() {
                 <Label htmlFor="enabled" className="text-sm text-muted-foreground">
                   {formData.enabled ? "소스가 활성화됩니다" : "소스가 비활성화됩니다"}
                 </Label>
-              </div>
-            </div>
-
-            {/* Validation Button */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <div />
-              <div className="col-span-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () => {
-                    if (!formData.url || !formData.url.trim()) {
-                      toast.error("URL을 입력하세요")
-                      return
-                    }
-
-                    try {
-                      toast.info("URL 검증 중...")
-
-                      let headers: Record<string, string> | undefined
-                      if (formData.headers?.trim()) {
-                        try {
-                          headers = JSON.parse(formData.headers)
-                        } catch {
-                          headers = {}
-                          const lines = formData.headers.split('\n')
-                          for (const line of lines) {
-                            const [key, ...values] = line.split(':')
-                            if (key && values.length > 0) {
-                              headers[key.trim()] = values.join(':').trim()
-                            }
-                          }
-                        }
-                      }
-
-                      const response = await fetch(`/api/news-sources/${editingSource?.id || 'test'}/validate`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ url: formData.url, headers })
-                      })
-
-                      if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`)
-                      }
-
-                      const result = await response.json()
-
-                      if (result.valid) {
-                        toast.success(`연결 성공! (응답시간: ${result.responseTime}ms)`)
-                      } else {
-                        toast.error(`연결 실패: ${result.error || '알 수 없는 오류'}`)
-                      }
-                    } catch (error) {
-                      console.error("Validation error:", error)
-                      toast.error(`검증 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
-                    }
-                  }}
-                >
-                  소스 검증
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1">
-                  URL에 연결 가능한지 테스트합니다 (선택사항)
-                </p>
               </div>
             </div>
           </div>

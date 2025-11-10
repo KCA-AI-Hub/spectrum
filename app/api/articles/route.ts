@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,17 +25,13 @@ export async function GET(request: NextRequest) {
         OR: [
           { title: { contains: keyword } },
           { content: { contains: keyword } },
-          { keywordTags: { contains: keyword } }
+          { keywordMatches: { contains: keyword } }
         ]
       }));
     }
 
     if (sources && sources.length > 0) {
-      where.crawlJob = {
-        target: {
-          id: { in: sources }
-        }
-      };
+      where.sourceName = { in: sources };
     }
 
     if (minRelevance !== undefined) {
@@ -55,34 +51,37 @@ export async function GET(request: NextRequest) {
           : sortBy === 'publishedAt' ? { publishedAt: sortOrder as 'asc' | 'desc' }
           : sortBy === 'extractedAt' ? { extractedAt: sortOrder as 'asc' | 'desc' }
           : sortBy === 'relevance' || sortBy === 'relevanceScore' ? { relevanceScore: sortOrder as 'asc' | 'desc' }
-          : { title: sortOrder as 'asc' | 'desc' },
-        include: {
-          crawlJob: {
-            include: {
-              target: true
-            }
-          }
-        }
+          : { title: sortOrder as 'asc' | 'desc' }
       }),
       prisma.article.count({ where })
     ]);
 
-    const formattedArticles = articles.map(article => ({
-      id: article.id,
-      title: article.title,
-      content: article.content,
-      url: article.url,
-      author: article.author,
-      publishedAt: article.publishedAt,
-      extractedAt: article.extractedAt,
-      imageUrl: article.imageUrl,
-      sourceName: article.crawlJob.target.name,
-      sourceUrl: article.crawlJob.target.url,
-      relevanceScore: article.relevanceScore,
-      keywordMatches: article.keywordTags ? article.keywordTags.split(',') : [],
-      tags: article.tags ? article.tags.split(',') : [],
-      status: article.status.toLowerCase()
-    }));
+    const formattedArticles = articles.map(article => {
+      let keywordMatches: string[] = [];
+      if (article.keywordMatches) {
+        try {
+          keywordMatches = JSON.parse(article.keywordMatches);
+        } catch {
+          keywordMatches = [];
+        }
+      }
+
+      return {
+        id: article.id,
+        title: article.title,
+        content: article.content,
+        url: article.url,
+        author: article.author,
+        publishedAt: article.publishedAt,
+        extractedAt: article.extractedAt,
+        imageUrl: article.imageUrl,
+        sourceName: article.sourceName,
+        sourceUrl: article.sourceUrl,
+        relevanceScore: article.relevanceScore,
+        keywordMatches,
+        status: article.status
+      };
+    });
 
     return NextResponse.json({
       articles: formattedArticles,

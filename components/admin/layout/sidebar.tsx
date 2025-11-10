@@ -7,14 +7,11 @@ import {
   BarChart3,
   FileText,
   Globe,
-  Users,
-  Settings,
   Home,
   Search,
   Brain,
-  Sparkles,
-  TrendingUp,
   Video,
+  Settings,
 } from "lucide-react"
 
 const navigation = [
@@ -24,19 +21,14 @@ const navigation = [
     icon: Home,
   },
   {
-    name: "뉴스 검색",
-    href: "/admin/search",
-    icon: Search,
+    name: "소스 관리",
+    href: "/admin/sources",
+    icon: Settings,
   },
   {
     name: "크롤링 관리",
-    href: "/admin/crawling",
-    icon: Globe,
-  },
-  {
-    name: "콘텐츠 관리",
-    href: "/admin/content",
-    icon: FileText,
+    href: "/admin/search",
+    icon: Search,
   },
   {
     name: "AI 분석",
@@ -44,29 +36,9 @@ const navigation = [
     icon: Brain,
   },
   {
-    name: "분석 결과",
-    href: "/admin/analysis-results",
-    icon: TrendingUp,
-  },
-  {
-    name: "요약 관리",
-    href: "/admin/summaries",
-    icon: Sparkles,
-  },
-  {
     name: "동영상 관리",
     href: "/admin/videos",
     icon: Video,
-  },
-  {
-    name: "사용자 관리",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    name: "시스템 설정",
-    href: "/admin/system",
-    icon: Settings,
   },
 ]
 

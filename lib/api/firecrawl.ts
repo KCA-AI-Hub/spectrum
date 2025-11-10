@@ -3,6 +3,73 @@ import Firecrawl from '@mendable/firecrawl-js';
 // Firecrawl 클라이언트 인스턴스
 let firecrawlClient: Firecrawl | null = null;
 
+// 콘텐츠 정제 함수 - 불필요한 내용 제거
+function cleanContent(content: string): string {
+  if (!content) return '';
+
+  // 줄바꿈으로 분리
+  const lines = content.split('\n');
+  const cleanedLines: string[] = [];
+
+  // 제거할 패턴들
+  const skipPatterns = [
+    /^skip to/i,
+    /^advertisement$/i,
+    /^ad feedback$/i,
+    /video ad feedback/i,
+    /^share with/i,
+    /^link copied/i,
+    /^follow:/i,
+    /^now playing/i,
+    /^source:/i,
+    /^\d+:\d+$/,  // 비디오 시간 (01:27 등)
+    /^markets?$/i,
+    /^dow|^s&p|^nasdaq/i,
+    /^hot stocks?$/i,
+    /^fear & greed/i,
+    /^latest (market )?news/i,
+    /^latest videos/i,
+    /see your latest updates/i,
+    /\[.*\]\(http/,  // 링크만 있는 줄
+  ];
+
+  let consecutiveEmptyLines = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // 빈 줄 처리 (연속 2개 이상 제거)
+    if (trimmed === '') {
+      consecutiveEmptyLines++;
+      if (consecutiveEmptyLines <= 1) {
+        cleanedLines.push('');
+      }
+      continue;
+    }
+
+    consecutiveEmptyLines = 0;
+
+    // 스킵할 패턴 체크
+    const shouldSkip = skipPatterns.some(pattern => pattern.test(trimmed));
+    if (shouldSkip) continue;
+
+    // 너무 짧은 줄 제거 (링크나 메뉴 항목일 가능성)
+    if (trimmed.length < 3 && !/^[#\-\*]/.test(trimmed)) continue;
+
+    cleanedLines.push(line);
+  }
+
+  // 앞뒤 빈 줄 제거
+  while (cleanedLines.length > 0 && cleanedLines[0].trim() === '') {
+    cleanedLines.shift();
+  }
+  while (cleanedLines.length > 0 && cleanedLines[cleanedLines.length - 1].trim() === '') {
+    cleanedLines.pop();
+  }
+
+  return cleanedLines.join('\n').trim();
+}
+
 export function getFirecrawlClient(): Firecrawl {
   if (!firecrawlClient) {
     const apiKey = process.env.FIRECRAWL_API_KEY;
@@ -186,15 +253,26 @@ export async function searchNews(keywords: string[], options?: {
               if (options?.scrapeContent) {
                 console.log(`Scraping content from: ${linkUrl}`);
                 const scrapeResult = await client.scrape(linkUrl, {
-                  formats: ['markdown', 'html'],
-                  onlyMainContent: true
+                  formats: ['markdown'],
+                  onlyMainContent: true,
+                  excludeTags: [
+                    'nav', 'header', 'footer', 'aside',
+                    'script', 'style', 'iframe', 'form',
+                    '[role="navigation"]', '[role="banner"]',
+                    '[role="contentinfo"]', '[role="complementary"]'
+                  ],
+                  waitFor: 2000,
+                  removeBase64Images: true
                 });
 
                 if (scrapeResult) {
+                  const rawContent = (scrapeResult as any).markdown || '';
+                  const cleanedContent = cleanContent(rawContent);
+
                   results.push({
                     url: linkUrl,
                     title: (scrapeResult as any).metadata?.title || 'Untitled',
-                    content: (scrapeResult as any).markdown || (scrapeResult as any).html || '',
+                    content: cleanedContent,
                     metadata: (scrapeResult as any).metadata || {},
                     source: baseUrl
                   });

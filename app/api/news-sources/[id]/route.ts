@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { NewsSource } from '@/lib/types/news-source';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db/prisma';
+
 
 // GET: Get a single news source by ID
 export async function GET(
@@ -10,7 +11,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const target = await prisma.crawlTarget.findUnique({
+    const target = await prisma.newsSource.findUnique({
       where: { id },
     });
 
@@ -21,7 +22,7 @@ export async function GET(
       );
     }
 
-    const status = !target.isActive
+    const status = !target.enabled
       ? 'inactive'
       : target.lastCrawl
         ? 'active'
@@ -35,7 +36,7 @@ export async function GET(
       category: target.category,
       description: target.description || undefined,
       headers: target.headers ? JSON.parse(target.headers) : undefined,
-      enabled: target.isActive,
+      enabled: target.enabled,
       status,
       lastCrawl: target.lastCrawl?.toISOString() || null,
       itemsCollected: target.itemsCollected,
@@ -65,7 +66,7 @@ export async function PATCH(
     const { name, url, type, category, description, headers, enabled } = body;
 
     // Check if source exists
-    const existing = await prisma.crawlTarget.findUnique({
+    const existing = await prisma.newsSource.findUnique({
       where: { id },
     });
 
@@ -78,7 +79,7 @@ export async function PATCH(
 
     // If URL is being changed, check for duplicates
     if (url && url !== existing.url) {
-      const duplicate = await prisma.crawlTarget.findUnique({
+      const duplicate = await prisma.newsSource.findUnique({
         where: { url },
       });
 
@@ -91,7 +92,7 @@ export async function PATCH(
     }
 
     // Update source
-    const target = await prisma.crawlTarget.update({
+    const target = await prisma.newsSource.update({
       where: { id },
       data: {
         name: name !== undefined ? name : existing.name,
@@ -100,11 +101,11 @@ export async function PATCH(
         category: category !== undefined ? category : existing.category,
         description: description !== undefined ? description : existing.description,
         headers: headers !== undefined ? JSON.stringify(headers) : existing.headers,
-        isActive: enabled !== undefined ? enabled : existing.isActive,
+        enabled: enabled !== undefined ? enabled : existing.enabled,
       },
     });
 
-    const status = !target.isActive
+    const status = !target.enabled
       ? 'inactive'
       : target.lastCrawl
         ? 'active'
@@ -118,7 +119,7 @@ export async function PATCH(
       category: target.category,
       description: target.description || undefined,
       headers: target.headers ? JSON.parse(target.headers) : undefined,
-      enabled: target.isActive,
+      enabled: target.enabled,
       status,
       lastCrawl: target.lastCrawl?.toISOString() || null,
       itemsCollected: target.itemsCollected,
@@ -146,7 +147,7 @@ export async function DELETE(
     const { id } = await params;
 
     // Check if source exists
-    const existing = await prisma.crawlTarget.findUnique({
+    const existing = await prisma.newsSource.findUnique({
       where: { id },
     });
 
@@ -158,7 +159,7 @@ export async function DELETE(
     }
 
     // Delete source (cascade will handle related jobs)
-    await prisma.crawlTarget.delete({
+    await prisma.newsSource.delete({
       where: { id },
     });
 

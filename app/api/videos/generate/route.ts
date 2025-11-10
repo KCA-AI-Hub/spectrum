@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/lib/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 import { videoJobManager } from '@/lib/video/job-manager'
 
 const prisma = new PrismaClient()

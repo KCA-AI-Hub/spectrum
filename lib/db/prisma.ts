@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma'
+import { PrismaClient } from '@prisma/client'
 
 // Prisma 클라이언트 인스턴스를 전역적으로 관리
 declare global {

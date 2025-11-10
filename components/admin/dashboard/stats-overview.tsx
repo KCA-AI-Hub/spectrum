@@ -44,7 +44,7 @@ export function StatsOverview() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-lg font-semibold">시스템 현황</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground" suppressHydrationWarning>
             마지막 업데이트: {data.lastUpdated.toLocaleTimeString()}
           </p>
         </div>

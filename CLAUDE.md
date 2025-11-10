@@ -13,6 +13,9 @@ Spectrum is a Next.js 15 application built with TypeScript, React 19, and Tailwi
 - **Start production**: `npm start`
 - **Linting**: `npm run lint` (ESLint configuration)
 
+### Server Management Policy
+**IMPORTANT**: DO NOT start, restart, or manage the development server (`npm run dev`) automatically. The user will handle all server operations manually. Focus only on code changes and let the user control when to start/restart the server.
+
 ## Architecture
 
 ### Tech Stack

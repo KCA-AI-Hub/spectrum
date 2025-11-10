@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/lib/generated/prisma'
+import { PrismaClient } from '@prisma/client'
 import { generateVideoPrompt, extractKeywords } from '@/lib/api/openai'
 
 const prisma = new PrismaClient()

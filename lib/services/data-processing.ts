@@ -3,7 +3,7 @@
  * Handles scraped content processing, storage, and quality verification
  */
 
-import { PrismaClient, Article, ArticleStatus } from '../generated/prisma';
+import { PrismaClient, Article, ArticleStatus } from '@prisma/client';
 import {
   processContentForStorage,
   calculateRelevanceScore,
