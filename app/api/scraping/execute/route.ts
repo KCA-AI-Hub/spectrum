@@ -13,15 +13,43 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
 
     // Validate required fields
-    if (!data.crawlJobId || !data.keywords || !Array.isArray(data.keywords)) {
+    if (!data.keywords || !Array.isArray(data.keywords)) {
       return NextResponse.json(
-        { error: 'crawlJobId and keywords array are required' },
+        { error: 'keywords array is required' },
         { status: 400 }
       );
     }
 
+    // Create crawl job if not provided
+    let crawlJobId = data.crawlJobId;
+    if (!crawlJobId) {
+      // Get or create a default crawl target for Firecrawl search
+      const target = await prisma.crawlTarget.upsert({
+        where: { url: 'firecrawl-search' },
+        update: {},
+        create: {
+          name: 'Firecrawl Search',
+          url: 'firecrawl-search',
+          type: 'news',
+          category: 'API Search',
+          description: 'Firecrawl API-based news search',
+          isActive: true
+        }
+      });
+
+      // Create crawl job
+      const job = await prisma.crawlJob.create({
+        data: {
+          targetId: target.id,
+          status: 'PENDING'
+        }
+      });
+
+      crawlJobId = job.id;
+    }
+
     const config: ScrapingJobConfig = {
-      crawlJobId: data.crawlJobId,
+      crawlJobId,
       keywords: data.keywords,
       sources: data.sources,
       options: {
@@ -33,7 +61,50 @@ export async function POST(request: NextRequest) {
     };
 
     // Execute the scraping job
+    const startTime = Date.now();
     const result = await orchestrator.executeScrapingJob(config);
+    const endTime = Date.now();
+    const searchTime = (endTime - startTime) / 1000;
+
+    // Save to search history
+    try {
+      const searchQuery = data.keywords.join(', ');
+      const filters = {
+        maxArticles: config.options.maxArticles,
+        relevanceThreshold: config.options.relevanceThreshold,
+        sources: config.sources,
+      };
+
+      // Create or get keyword
+      let keywordId: string | undefined;
+      if (data.keywords && data.keywords.length > 0) {
+        const keyword = await prisma.keyword.upsert({
+          where: { keyword: data.keywords[0] },
+          update: {
+            useCount: { increment: 1 }
+          },
+          create: {
+            keyword: data.keywords[0],
+            useCount: 1
+          }
+        });
+        keywordId = keyword.id;
+      }
+
+      await prisma.searchHistory.create({
+        data: {
+          searchQuery,
+          keywordId,
+          resultCount: result.processedArticles || 0,
+          searchTime,
+          filters: JSON.stringify(filters),
+          status: result.status === 'COMPLETED' ? 'COMPLETED' : 'FAILED'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to save search history:', error);
+      // Don't fail the whole request if history save fails
+    }
 
     return NextResponse.json({
       success: true,

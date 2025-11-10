@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const minRelevance = searchParams.get('minRelevance')
       ? parseFloat(searchParams.get('minRelevance')!)
       : undefined;
+    const status = searchParams.get('status');
     const sortBy = searchParams.get('sortBy') || 'publishedAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
@@ -41,13 +42,19 @@ export async function GET(request: NextRequest) {
       where.relevanceScore = { gte: minRelevance };
     }
 
+    if (status) {
+      where.status = status;
+    }
+
     const [articles, total] = await Promise.all([
       prisma.article.findMany({
         where,
         skip,
         take: pageSize,
         orderBy: sortBy === 'date' ? { publishedAt: sortOrder as 'asc' | 'desc' }
-          : sortBy === 'relevance' ? { relevanceScore: sortOrder as 'asc' | 'desc' }
+          : sortBy === 'publishedAt' ? { publishedAt: sortOrder as 'asc' | 'desc' }
+          : sortBy === 'extractedAt' ? { extractedAt: sortOrder as 'asc' | 'desc' }
+          : sortBy === 'relevance' || sortBy === 'relevanceScore' ? { relevanceScore: sortOrder as 'asc' | 'desc' }
           : { title: sortOrder as 'asc' | 'desc' },
         include: {
           crawlJob: {

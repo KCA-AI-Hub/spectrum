@@ -94,3 +94,18 @@ generated/
 
 # Local development
 .local/
+
+# Backups
+backups/
+*.backup
+*.bak
+
+# Test APIs (optional - uncomment to exclude from git)
+# app/api/test-*/
+# app/api/check-db/
+# app/api/reset-db/
+# app/api/clear-all-articles/
+
+# Development scripts (optional)
+# scripts/dev/
+# scripts/test/

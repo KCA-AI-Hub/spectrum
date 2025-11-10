@@ -61,7 +61,7 @@ export class DataProcessingService {
       );
 
       // Step 2: Check for duplicates
-      const duplicateCheck = await this.checkForDuplicates(data.url, processed.cleanText, processed.title);
+      const duplicateCheck = await this.checkForDuplicates(data.url, processed.cleanText, processed.title, data.crawlJobId);
       if (duplicateCheck.isDuplicate) {
         return {
           success: false,
@@ -117,21 +117,49 @@ export class DataProcessingService {
   }
 
   /**
-   * Check for duplicate content
+   * Check for duplicate content within same crawl job
    */
   private async checkForDuplicates(
     url: string,
     content: string,
-    title: string
+    title: string,
+    crawlJobId?: string
   ): Promise<{ isDuplicate: boolean; reason?: string; existingArticleId?: string }> {
 
-    // Check for exact URL match
+    // Only check for exact URL match within the same crawl job
+    // This allows the same article from different searches
+    if (crawlJobId) {
+      const existingInJob = await this.prisma.article.findFirst({
+        where: {
+          url,
+          crawlJobId
+        },
+        select: { id: true, title: true }
+      });
+
+      if (existingInJob) {
+        return {
+          isDuplicate: true,
+          reason: 'Same URL already exists in this crawl job',
+          existingArticleId: existingInJob.id
+        };
+      }
+    }
+
+    // Also check for exact URL match globally (to avoid storing same URL multiple times)
     const existingByUrl = await this.prisma.article.findUnique({
       where: { url },
-      select: { id: true, title: true }
+      select: { id: true, title: true, createdAt: true }
     });
 
     if (existingByUrl) {
+      // If article is older than 30 days, allow it to be re-scraped
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      if (existingByUrl.createdAt < thirtyDaysAgo) {
+        console.log(`Article URL exists but is old (${existingByUrl.createdAt}), allowing re-scrape`);
+        return { isDuplicate: false };
+      }
+
       return {
         isDuplicate: true,
         reason: 'Same URL already exists',
@@ -139,28 +167,8 @@ export class DataProcessingService {
       };
     }
 
-    // Check for content similarity with recent articles
-    const recentArticles = await this.prisma.article.findMany({
-      where: {
-        createdAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-        }
-      },
-      select: { id: true, title: true, content: true },
-      take: 100,
-      orderBy: { createdAt: 'desc' }
-    });
-
-    for (const article of recentArticles) {
-      const similarity = calculateContentSimilarity(content, article.content);
-      if (similarity.isSimilar && similarity.score > 0.8) {
-        return {
-          isDuplicate: true,
-          reason: `Similar to existing article: ${similarity.reason}`,
-          existingArticleId: article.id
-        };
-      }
-    }
+    // Removed content similarity check for better performance
+    // You can re-enable it if needed for specific use cases
 
     return { isDuplicate: false };
   }

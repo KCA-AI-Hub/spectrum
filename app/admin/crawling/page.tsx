@@ -145,6 +145,16 @@ export default function CrawlingManagement() {
 
       {/* Quick Navigation */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link href="/admin/crawling/jobs">
+          <Card className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-6 text-center">
+              <Play className="h-8 w-8 mx-auto mb-3 text-primary" />
+              <h3 className="font-medium mb-2">스크래핑 작업</h3>
+              <p className="text-sm text-muted-foreground">뉴스 스크래핑 실행</p>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link href="/admin/crawling/sources">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
@@ -155,32 +165,22 @@ export default function CrawlingManagement() {
           </Card>
         </Link>
 
-        <Link href="/admin/crawling/schedules">
+        <Link href="/admin/crawling/search">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
-              <Clock className="h-8 w-8 mx-auto mb-3 text-chart-2" />
-              <h3 className="font-medium mb-2">스케줄 관리</h3>
-              <p className="text-sm text-muted-foreground">크롤링 일정 및 주기 설정</p>
+              <Search className="h-8 w-8 mx-auto mb-3 text-chart-2" />
+              <h3 className="font-medium mb-2">키워드 검색</h3>
+              <p className="text-sm text-muted-foreground">키워드로 뉴스 검색</p>
             </CardContent>
           </Card>
         </Link>
 
-        <Link href="/admin/crawling/monitoring">
+        <Link href="/admin/crawling/history">
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-6 text-center">
               <BarChart3 className="h-8 w-8 mx-auto mb-3 text-chart-3" />
-              <h3 className="font-medium mb-2">모니터링</h3>
-              <p className="text-sm text-muted-foreground">실시간 크롤링 상태 확인</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/admin/crawling/quality">
-          <Card className="cursor-pointer hover:shadow-md transition-shadow">
-            <CardContent className="p-6 text-center">
-              <CheckCircle className="h-8 w-8 mx-auto mb-3 text-chart-4" />
-              <h3 className="font-medium mb-2">데이터 품질</h3>
-              <p className="text-sm text-muted-foreground">수집 데이터 품질 관리</p>
+              <h3 className="font-medium mb-2">검색 기록</h3>
+              <p className="text-sm text-muted-foreground">스크래핑 기록 조회</p>
             </CardContent>
           </Card>
         </Link>

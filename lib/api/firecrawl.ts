@@ -119,18 +119,34 @@ export async function searchNews(keywords: string[], options?: {
 
     console.log(`Searching for news with query: "${searchQuery}"`);
 
-    // Use map method to find relevant news sites and then scrape them
-    const newsUrls = [
-      'https://news.google.com',
-      'https://www.bbc.com/news',
-      'https://edition.cnn.com',
-      'https://www.reuters.com',
-      'https://www.nytimes.com'
-    ];
+    // Detect language from keywords
+    const hasKorean = /[\u3131-\u314e\u314f-\u3163\uac00-\ud7a3]/.test(searchQuery);
+
+    // Select news sources based on language
+    let newsUrls: string[];
+    if (hasKorean || options?.language === 'ko') {
+      console.log('Using Korean news sources');
+      newsUrls = [
+        'https://news.naver.com',
+        'https://news.daum.net',
+        'https://www.chosun.com',
+        'https://www.joongang.co.kr',
+        'https://www.donga.com'
+      ];
+    } else {
+      console.log('Using English news sources');
+      newsUrls = [
+        'https://news.google.com',
+        'https://www.bbc.com/news',
+        'https://edition.cnn.com',
+        'https://www.reuters.com',
+        'https://www.nytimes.com'
+      ];
+    }
 
     const results = [];
 
-    for (const baseUrl of newsUrls.slice(0, 2)) { // Limit to 2 sources for testing
+    for (const baseUrl of newsUrls.slice(0, 3)) { // Use 3 sources
       try {
         console.log(`Mapping URLs from: ${baseUrl}`);
 
@@ -143,18 +159,40 @@ export async function searchNews(keywords: string[], options?: {
         if (mapResult && (mapResult as any).links) {
           const links = (mapResult as any).links.slice(0, 3); // Limit links per source
 
+          console.log(`Found ${links.length} links, first link structure:`, JSON.stringify(links[0], null, 2));
+
           for (const link of links) {
             try {
+              // Extract URL from link object or use link directly if it's a string
+              let linkUrl: string | null = null;
+
+              if (typeof link === 'string') {
+                linkUrl = link;
+              } else if (typeof link === 'object' && link !== null) {
+                // Try various common properties
+                linkUrl = link.url || link.href || link.link || link.address;
+              }
+
+              if (!linkUrl) {
+                console.warn(`Could not extract URL from link:`, JSON.stringify(link));
+                continue;
+              }
+
+              if (typeof linkUrl !== 'string') {
+                console.warn(`Extracted URL is not a string:`, typeof linkUrl, linkUrl);
+                continue;
+              }
+
               if (options?.scrapeContent) {
-                console.log(`Scraping content from: ${link}`);
-                const scrapeResult = await client.scrape(link, {
+                console.log(`Scraping content from: ${linkUrl}`);
+                const scrapeResult = await client.scrape(linkUrl, {
                   formats: ['markdown', 'html'],
                   onlyMainContent: true
                 });
 
                 if (scrapeResult) {
                   results.push({
-                    url: link,
+                    url: linkUrl,
                     title: (scrapeResult as any).metadata?.title || 'Untitled',
                     content: (scrapeResult as any).markdown || (scrapeResult as any).html || '',
                     metadata: (scrapeResult as any).metadata || {},
@@ -163,7 +201,7 @@ export async function searchNews(keywords: string[], options?: {
                 }
               } else {
                 results.push({
-                  url: link,
+                  url: linkUrl,
                   title: 'Link found',
                   content: '',
                   metadata: {},
@@ -171,7 +209,7 @@ export async function searchNews(keywords: string[], options?: {
                 });
               }
             } catch (scrapeError) {
-              console.error(`Error scraping ${link}:`, scrapeError);
+              console.error(`Error scraping link:`, scrapeError);
             }
           }
         }

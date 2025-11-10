@@ -58,11 +58,21 @@ import {
   Loader2,
   Star,
   Trash2,
-  Download
+  Download,
+  History
 } from "lucide-react"
 import { useScraping, useArticles } from "@/lib/hooks/use-scraping"
 import type { ScrapingJobRequest, ArticleFilter, ScrapedArticle } from "@/lib/types/scraping"
 import type { NewsSource } from "@/lib/types/news-source"
+
+interface SearchHistoryItem {
+  id: string
+  searchQuery: string
+  resultCount: number
+  searchTime: number
+  filters: string | null
+  createdAt: string
+}
 
 export default function CrawlingSearch() {
   const [keywords, setKeywords] = useState<string[]>([])
@@ -76,6 +86,8 @@ export default function CrawlingSearch() {
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false)
   const [favoriteKeywords, setFavoriteKeywords] = useState<string[]>([])
   const [selectedArticleIds, setSelectedArticleIds] = useState<string[]>([])
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const [filter, setFilter] = useState<ArticleFilter>({
     sortBy: 'date',
@@ -88,6 +100,7 @@ export default function CrawlingSearch() {
   useEffect(() => {
     fetchSources()
     fetchFavoriteKeywords()
+    fetchSearchHistory()
   }, [])
 
   const fetchFavoriteKeywords = async () => {
@@ -102,6 +115,21 @@ export default function CrawlingSearch() {
     }
   }
 
+  const fetchSearchHistory = async () => {
+    try {
+      setHistoryLoading(true)
+      const response = await fetch('/api/search-history?page=1&pageSize=10')
+      if (!response.ok) throw new Error('Failed to fetch history')
+
+      const data = await response.json()
+      setSearchHistory(data.history || [])
+    } catch (error) {
+      console.error('Error fetching search history:', error)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
   const fetchSources = async () => {
     try {
       const response = await fetch('/api/news-sources?status=active')
@@ -112,6 +140,37 @@ export default function CrawlingSearch() {
     } catch (error) {
       console.error('Error fetching sources:', error)
       toast.error('소스 목록을 불러오는데 실패했습니다')
+    }
+  }
+
+  const handleLoadHistory = (historyId: string) => {
+    const selected = searchHistory.find(h => h.id === historyId)
+    if (!selected) return
+
+    try {
+      const filters = selected.filters ? JSON.parse(selected.filters) : {}
+
+      if (selected.searchQuery) {
+        const keywordsFromQuery = selected.searchQuery.split(',').map(k => k.trim()).filter(Boolean)
+        setKeywords(keywordsFromQuery)
+      }
+
+      if (filters.maxArticles) {
+        setMaxArticles(filters.maxArticles)
+      }
+
+      if (filters.relevanceThreshold !== undefined) {
+        setRelevanceThreshold(filters.relevanceThreshold)
+      }
+
+      if (filters.sources && Array.isArray(filters.sources)) {
+        setSelectedSources(filters.sources)
+      }
+
+      toast.success('이전 검색 설정을 불러왔습니다')
+    } catch (error) {
+      console.error('Error loading history:', error)
+      toast.error('검색 기록을 불러오는데 실패했습니다')
     }
   }
 
@@ -290,6 +349,36 @@ export default function CrawlingSearch() {
           <CardTitle>검색 설정</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              이전 검색 불러오기
+            </Label>
+            <Select onValueChange={handleLoadHistory} disabled={historyLoading || loading}>
+              <SelectTrigger>
+                <SelectValue placeholder={historyLoading ? "불러오는 중..." : "검색 기록 선택"} />
+              </SelectTrigger>
+              <SelectContent>
+                {searchHistory.length === 0 ? (
+                  <SelectItem value="empty" disabled>
+                    검색 기록이 없습니다
+                  </SelectItem>
+                ) : (
+                  searchHistory.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="truncate max-w-[200px]">{item.searchQuery}</span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label>키워드</Label>
             <div className="flex gap-2">

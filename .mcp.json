@@ -1,18 +1,24 @@
 {
   "mcpServers": {
     "shadcn": {
-      "command": "npx",
+      "command": "cmd",
       "args": [
+        "/c",
         "shadcn@latest",
         "mcp"
       ]
     },
     "sequential-thinking": {
-      "command": "npx",
+      "command": "cmd",
       "args": [
+        "/c",
         "-y",
         "@modelcontextprotocol/server-sequential-thinking"
       ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["/c", "-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-d272fe63-e16e-4b12-9507-1a429e3f3140"]
     }
   }
 }

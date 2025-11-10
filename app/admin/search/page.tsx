@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Filter, History, Star, Table, Grid, CalendarDays, ChevronDown, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Search, Filter, History, Star, Table, Grid, CalendarDays, ChevronDown, Loader2, Eye, ExternalLink } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
+import { Progress } from "@/components/ui/progress"
+import { toast } from "sonner"
 import {
   Select,
   SelectContent,
@@ -30,10 +32,34 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { SearchResultsTable } from "@/components/admin/search/search-results-table"
-import { SearchResultsCards } from "@/components/admin/search/search-results-cards"
-import { SearchProgress } from "@/components/admin/search/search-progress"
-import { CrawlingLogs } from "@/components/admin/search/crawling-logs"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+interface SearchHistoryItem {
+  id: string
+  searchQuery: string
+  resultCount: number
+  searchTime: number
+  filters: string | null
+  createdAt: string
+}
+
+interface ScrapedArticle {
+  id: string
+  title: string
+  content: string
+  url: string
+  author?: string
+  publishedAt?: string
+  imageUrl?: string
+  sourceName: string
+  relevanceScore?: number
+  keywordMatches: string[]
+}
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -52,32 +78,96 @@ export default function SearchPage() {
   // Search state
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [searchProgress, setSearchProgress] = useState(0)
+  const [searchResults, setSearchResults] = useState<ScrapedArticle[]>([])
+  const [selectedArticle, setSelectedArticle] = useState<ScrapedArticle | null>(null)
+  const [isArticleModalOpen, setIsArticleModalOpen] = useState(false)
 
-  const recentSearches = [
-    "AI 기술 동향",
-    "블록체인 뉴스",
-    "스타트업 투자",
-    "메타버스 플랫폼",
-    "ESG 경영"
-  ]
+  // History
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([])
+  const [favoriteKeywords, setFavoriteKeywords] = useState<string[]>([])
 
-  const favoriteKeywords = [
-    "인공지능",
-    "핀테크",
-    "전기차",
-    "반도체"
-  ]
+  useEffect(() => {
+    fetchSearchHistory()
+    fetchFavoriteKeywords()
+  }, [])
+
+  const fetchSearchHistory = async () => {
+    try {
+      const response = await fetch('/api/search-history?page=1&pageSize=5')
+      if (!response.ok) throw new Error('Failed to fetch history')
+
+      const data = await response.json()
+      setSearchHistory(data.history || [])
+    } catch (error) {
+      console.error('Error fetching search history:', error)
+    }
+  }
+
+  const fetchFavoriteKeywords = async () => {
+    try {
+      const response = await fetch('/api/keywords?action=favorites')
+      if (!response.ok) throw new Error('Failed to fetch favorites')
+
+      const data = await response.json()
+      setFavoriteKeywords(data.keywords?.map((k: any) => k.keyword) || [])
+    } catch (error) {
+      console.error('Error fetching favorites:', error)
+    }
+  }
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
 
     setIsSearching(true)
     setHasSearched(true)
+    setSearchProgress(0)
+    setSearchResults([])
 
-    // Simulate search duration (in real app, this would be actual API calls)
-    await new Promise(resolve => setTimeout(resolve, 10000)) // 10 seconds
+    try {
+      const keywords = searchQuery.split(',').map(k => k.trim()).filter(Boolean)
 
-    setIsSearching(false)
+      const response = await fetch('/api/scraping/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keywords,
+          maxArticles: 30,
+          relevanceThreshold: 10,
+          enableAutoBackup: false
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to start search')
+      }
+
+      const data = await response.json()
+
+      // Fetch articles from database
+      await fetchSearchResults(keywords)
+
+      toast.success('검색이 완료되었습니다')
+    } catch (error) {
+      console.error('Search error:', error)
+      toast.error(error instanceof Error ? error.message : '검색에 실패했습니다')
+    } finally {
+      setIsSearching(false)
+      setSearchProgress(100)
+    }
+  }
+
+  const fetchSearchResults = async (keywords: string[]) => {
+    try {
+      const response = await fetch(`/api/articles?keywords=${keywords.join(',')}&page=1&pageSize=50`)
+      if (!response.ok) throw new Error('Failed to fetch results')
+
+      const data = await response.json()
+      setSearchResults(data.articles || [])
+    } catch (error) {
+      console.error('Error fetching results:', error)
+    }
   }
 
   const handleCancelSearch = () => {
@@ -86,9 +176,11 @@ export default function SearchPage() {
 
   const handleKeywordClick = (keyword: string) => {
     setSearchQuery(keyword)
-    if (keyword.trim()) {
-      handleSearch()
-    }
+  }
+
+  const handleViewArticle = (article: ScrapedArticle) => {
+    setSelectedArticle(article)
+    setIsArticleModalOpen(true)
   }
 
   return (
@@ -166,11 +258,22 @@ export default function SearchPage() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>최근 검색어</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {recentSearches.map((search, index) => (
-                  <DropdownMenuItem key={index} onClick={() => setSearchQuery(search)}>
-                    {search}
-                  </DropdownMenuItem>
-                ))}
+                {searchHistory.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    검색 기록이 없습니다
+                  </div>
+                ) : (
+                  searchHistory.map((item) => (
+                    <DropdownMenuItem key={item.id} onClick={() => setSearchQuery(item.searchQuery)}>
+                      <div className="flex flex-col gap-1">
+                        <span>{item.searchQuery}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(item.createdAt).toLocaleDateString('ko-KR')}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -321,17 +424,27 @@ export default function SearchPage() {
 
       {/* 검색 진행 상황 */}
       {isSearching && (
-        <SearchProgress
-          isSearching={isSearching}
-          searchQuery={searchQuery}
-          onCancel={handleCancelSearch}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>검색 진행 중</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="text-sm">뉴스 기사를 검색하고 수집하는 중...</span>
+            </div>
+            <Progress value={searchProgress} className="w-full" />
+            <Button variant="destructive" onClick={handleCancelSearch} className="w-full">
+              취소
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* 검색 결과 영역 */}
       <Card>
         <CardHeader>
-          <CardTitle>검색 결과</CardTitle>
+          <CardTitle>검색 결과 ({searchResults.length}개)</CardTitle>
           <CardDescription>
             {searchQuery ? `"${searchQuery}"에 대한 검색 결과` : "키워드를 입력하여 검색을 시작하세요"}
           </CardDescription>
@@ -347,28 +460,109 @@ export default function SearchPage() {
               <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
               <p>검색 결과를 불러오고 있습니다...</p>
             </div>
-          ) : viewMode === "table" ? (
-            <SearchResultsTable
-              searchQuery={searchQuery}
-              onRowClick={(result) => {
-                console.log("Row clicked:", result)
-                // TODO: Open detail modal
-              }}
-            />
+          ) : searchResults.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>검색 결과가 없습니다</p>
+            </div>
           ) : (
-            <SearchResultsCards
-              searchQuery={searchQuery}
-              onCardClick={(result) => {
-                console.log("Card clicked:", result)
-                // TODO: Open detail modal
-              }}
-            />
+            <div className="space-y-4">
+              {searchResults.map((article) => (
+                <div
+                  key={article.id}
+                  className="p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => handleViewArticle(article)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-lg mb-2">{article.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                        {article.content.substring(0, 200)}...
+                      </p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>{article.sourceName}</span>
+                        {article.author && <span>by {article.author}</span>}
+                        {article.publishedAt && (
+                          <span>{new Date(article.publishedAt).toLocaleDateString('ko-KR')}</span>
+                        )}
+                        {article.relevanceScore && (
+                          <Badge variant="outline" className="ml-auto">
+                            관련도: {article.relevanceScore}%
+                          </Badge>
+                        )}
+                      </div>
+                      {article.keywordMatches.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {article.keywordMatches.map((keyword, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">
+                              {keyword}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="icon">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 크롤링 로그 */}
-      <CrawlingLogs />
+      {/* 기사 상세 모달 */}
+      <Dialog open={isArticleModalOpen} onOpenChange={setIsArticleModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          {selectedArticle && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">{selectedArticle.title}</DialogTitle>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span>{selectedArticle.sourceName}</span>
+                  {selectedArticle.author && <span>by {selectedArticle.author}</span>}
+                  {selectedArticle.publishedAt && (
+                    <span>{new Date(selectedArticle.publishedAt).toLocaleString('ko-KR')}</span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(selectedArticle.url, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    원문 보기
+                  </Button>
+                </div>
+              </DialogHeader>
+              <div className="space-y-4">
+                {selectedArticle.imageUrl && (
+                  <img
+                    src={selectedArticle.imageUrl}
+                    alt={selectedArticle.title}
+                    className="w-full rounded-lg"
+                  />
+                )}
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                  {selectedArticle.content}
+                </div>
+                {selectedArticle.keywordMatches.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">일치 키워드</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedArticle.keywordMatches.map((keyword, idx) => (
+                        <Badge key={idx} variant="secondary">
+                          {keyword}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
